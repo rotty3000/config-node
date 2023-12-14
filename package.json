@@ -1,0 +1,26 @@
+{
+  "name": "lxc-config-node",
+  "version": "1.0.0",
+  "description": "A library for obtaining external configuration for your application.",
+  "main": "index.js",
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "tsc",
+    "run": "node dist/src/index.js",
+    "test": "tsc && ts-mocha test/*.ts"
+  },
+  "author": "Raymond Augé",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@types/chai": "^4.3.11",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.10.4",
+    "@types/sinon": "^17.0.2",
+    "chai": "^4.3.10",
+    "mocha": "^10.2.0",
+    "sinon": "^17.0.1",
+    "ts-mocha": "^10.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}
