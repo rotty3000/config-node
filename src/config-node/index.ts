@@ -41,7 +41,7 @@ export function addProvider(provider: ConfigProvider) {
 
 addProvider({
   description: "From ~/.config-node-devtools.json",
-  priority: 1000,
+  priority: 11000,
   get: (cache, key) => computeIfAbsent(cache, key, () => {
     const homedir = computeIfAbsent(commonCache, 'homedir', () => os.homedir());
     const filePath = path.join(homedir, '.config-node-devtools.json');
@@ -58,7 +58,7 @@ addProvider({
 });
 addProvider({
   description: "From command line arguments (--key=value)",
-  priority: 900,
+  priority: 1000,
   get: (cache, key) => computeIfAbsent(cache, `process.args.${key}`, () => {
     const prefix = `--${key}=`
     for (var arg of process.argv) {
@@ -75,7 +75,7 @@ addProvider({
 });
 addProvider({
   description: "From command line argument (--application.json=<json>)",
-  priority: 890,
+  priority: 9000,
   get: (cache, key) => computeIfAbsent(cache, `process.args.${key}`, () => {
     const prefix = `--application.json=`
     for (var arg of process.argv) {
@@ -92,7 +92,7 @@ addProvider({
 });
 addProvider({
   description: "Properties from APPLICATION_JSON (inline JSON embedded in an environment variable)",
-  priority: 800,
+  priority: 8000,
   get: (cache, key) => computeIfAbsent(cache, key, () => {
     if (process.env.APPLICATION_JSON) {
       const json = computeIfAbsent(cache, `process.env.APPLICATION_JSON`, () => JSON.parse(process.env.APPLICATION_JSON));
@@ -107,7 +107,7 @@ addProvider({
 });
 addProvider({
   description: "From environment variables (following name mangling rules)",
-  priority: 700,
+  priority: 7000,
   get: (cache, key) => computeIfAbsent(cache, `process.env:${key}`, () => {
     let modifiedKey = key.replace(/\./gi, '_');
     modifiedKey = modifiedKey.replace(/-/gi, '');
@@ -120,7 +120,7 @@ addProvider({
 });
 addProvider({
   description: "From config tree directories (a.k.a. Volume mounted ConfigMaps/Secrets)",
-  priority: 700,
+  priority: 6000,
   get: (cache, key) => {
     if (protectedKeys.includes(key)) {
       return;
@@ -145,7 +145,7 @@ addProvider({
 });
 addProvider({
   description: "From application profile property json files in ${CWD}/config",
-  priority: 690,
+  priority: 5000,
   get: (cache, key) => {
     if (protectedKeys.includes(key)) {
       return;
@@ -168,7 +168,7 @@ addProvider({
 });
 addProvider({
   description: "From application profile property json files in ${CWD}",
-  priority: 680,
+  priority: 4000,
   get: (cache, key) => {
     if (key === 'config.node.profiles.active') {
       return;
@@ -191,7 +191,7 @@ addProvider({
 });
 addProvider({
   description: "From application property json files in ${CWD}/config",
-  priority: 670,
+  priority: 3000,
   get: (cache, key) => {
     const cwd = computeIfAbsent(commonCache, 'cwd', () => process.cwd());
     const configPath = path.join(cwd, 'config', 'application.json');
@@ -208,7 +208,7 @@ addProvider({
 });
 addProvider({
   description: "From application property json files in ${CWD}",
-  priority: 660,
+  priority: 2000,
   get: (cache, key) => {
     const cwd = computeIfAbsent(commonCache, 'cwd', () => process.cwd());
     const configPath = path.join(cwd, 'application.json');
@@ -225,7 +225,7 @@ addProvider({
 });
 addProvider({
   description: "From application property json files packaged with the app",
-  priority: 650,
+  priority: 1000,
   get: (cache, key) => {
     const mainPath = computeIfAbsent(commonCache, 'require.main.path', () => require.main?.path);
     const configPath = path.join(mainPath, 'application.json');
