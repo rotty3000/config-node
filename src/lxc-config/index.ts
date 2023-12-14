@@ -1,4 +1,4 @@
-import {lookupConfig} from '../lookupConfig';
+import {lookupConfig} from '../config-node';
 
 // type definitions
 type ConfigValueFunctionType = () => string | string[] | undefined;
