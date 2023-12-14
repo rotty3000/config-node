@@ -1,4 +1,4 @@
-import {lookupConfig, defaultConfig, setVerbose} from '../src/config-node';
+import {lookupConfig, defaultConfig} from '../src/config-node';
 import {assert} from 'chai';
 import sinon from 'sinon';
 import fs from 'fs';
@@ -85,6 +85,17 @@ describe('lookupConfig', function () {
     assert.equal(
       lookupConfig('config.map.key'),
       'config map value\nanother config map value'
+    );
+  });
+
+  it('should return value from config trees (a.k.a. volume mounted ConfigMap/Secrets) (via ENV)', function () {
+    process.env.CONFIG_NODE_CONFIG_TREES = '/configtree2';
+    sinon.stub(fs, 'existsSync').withArgs("/configtree2/config.map.key.2").returns(true);
+    sinon.stub(fs, 'readFileSync').withArgs("/configtree2/config.map.key.2", 'utf8').returns('config map value 2');
+
+    assert.equal(
+      lookupConfig('config.map.key.2'),
+      'config map value 2'
     );
   });
 

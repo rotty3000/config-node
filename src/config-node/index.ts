@@ -125,15 +125,16 @@ addProvider({
     if (protectedKeys.includes(key)) {
       return;
     }
-    const configtrees = lookupConfig('config.node.config.trees') as string[];
-    if (!configtrees || configtrees.length == 0) {
+    let configtrees = lookupConfig('config.node.config.trees');
+    if (!configtrees) {
       return;
     }
+    configtrees = Array.isArray(configtrees) ? configtrees : [configtrees];
     return computeIfAbsent(cache, `configtree:${key}`, () => {
       for (var configtree of configtrees) {
         const configtreeEntry = path.join(configtree, key);
         if (fs.existsSync(configtreeEntry)) {
-          return fs.readFileSync(configtreeEntry, 'utf8');
+          return unquote(fs.readFileSync(configtreeEntry, 'utf8'));
         }
       }
     });
@@ -149,12 +150,13 @@ addProvider({
     if (protectedKeys.includes(key)) {
       return;
     }
-    const profile = lookupConfig('config.node.profiles.active') as string[];
-    if (!profile || profile.length == 0) {
+    let profile = lookupConfig('config.node.profiles.active');
+    if (!profile) {
       return;
     }
+    profile = Array.isArray(profile) ? profile[profile.length - 1]: profile;
     const cwd = computeIfAbsent(commonCache, 'cwd', () => process.cwd());
-    const configPath = path.join(cwd, 'config', `application-${profile[profile.length - 1]}.json`);
+    const configPath = path.join(cwd, 'config', `application-${profile}.json`);
     const json = computeIfAbsent(cache, configPath, () => JSON.parse(fs.readFileSync(configPath, 'utf8')));
     if (json) {
       return unquote(json[key]);
@@ -171,12 +173,13 @@ addProvider({
     if (key === 'config.node.profiles.active') {
       return;
     }
-    const profile = lookupConfig('config.node.profiles.active') as string[];
-    if (!profile || profile.length == 0) {
+    let profile = lookupConfig('config.node.profiles.active');
+    if (!profile) {
       return;
     }
+    profile = Array.isArray(profile) ? profile[profile.length - 1]: profile;
     const cwd = computeIfAbsent(commonCache, 'cwd', () => process.cwd());
-    const configPath = path.join(cwd, `application-${profile[profile.length - 1]}.json`);
+    const configPath = path.join(cwd, `application-${profile}.json`);
     const json = computeIfAbsent(cache, configPath, () => JSON.parse(fs.readFileSync(configPath, 'utf8')));
     if (json) {
       return unquote(json[key]);
@@ -238,7 +241,7 @@ addProvider({
   },
 });
 addProvider({
-  description: "Programer provided defaults",
+  description: "From programer provided defaults",
   priority: -100,
   get: (cache, key) => commonCache.get(key),
   cacheInvalid() {
@@ -282,6 +285,10 @@ function unquote(it: any) {
     }
     else if (it.startsWith('\'') && it.endsWith('\'')) {
       return it.slice(1, -1);
+    }
+
+    if (it.includes(',')) {
+      return it.split(',');
     }
   }
   return it;
