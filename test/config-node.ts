@@ -1,4 +1,4 @@
-import {lookupConfig, defaultConfig} from '../src/config-node';
+import {lookupConfig, defaultConfig, addProvider, ConfigProvider} from '../src/config-node';
 import {assert} from 'chai';
 import sinon from 'sinon';
 import fs from 'fs';
@@ -164,6 +164,28 @@ describe('lookupConfig', function () {
     assert.deepEqual(
       lookupConfig('a.default.key'),
       '{"key":"a default value"}'
+    );
+  });
+
+  it('should return value from a custom provider', function () {
+    const customProvider: ConfigProvider = {
+      description: "From a database, vault or whatever",
+      priority: 100,
+      get: (cache, key) => {
+        if (key == 'custom.key') {
+          return 'custom value';
+        }
+      },
+      cacheInvalid() {
+        return false;
+      },
+    };
+
+    addProvider(customProvider);
+
+    assert.deepEqual(
+      lookupConfig('custom.key'),
+      'custom value'
     );
   });
 });

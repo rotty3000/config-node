@@ -6,9 +6,10 @@ A library for obtaining external configuration for your application.
 ```typescript
 import {lookupConfig, defaultConfig} from 'config-node';
 
-const value = lookupConfig('a.configuration.key');
+// It's best not to store the value and to always look it up because some providers are able to invalidate their caches in order to give updated values
+let value = lookupConfig('a.configuration.key');
 
-// setting a default value to be used when no provider can locate a configured value
+// Setting a default value to be used when no provider can locate a configured value
 
 // do this before any access for the key has been performed
 defaultConfig('config.node.config.trees', ['/configtree']);
@@ -45,3 +46,28 @@ The following configuration sources are used in order of precedence.
    ```typescript
    defaultConfig('my.custom.config', 'some value');
    ```
+
+## custom providers
+
+Custom providers can be added as middle ware to without affecting other parts of the code.
+
+```typescript
+import {addProvider, ConfigProvider} from 'config-node';
+
+const customProvider: ConfigProvider = {
+    description: "From a database, vault or whatever",
+    priority: 100,
+    get: (cache, key) => {
+        // if the work is hard, put the value in the local cache for better performance over repeated uses.
+        if (key == 'custom.key') {
+            return 'custom value';
+        }
+    },
+    cacheInvalid() {
+        // if your data source can change during runtime use this function to invalidate the local cache
+        return false;
+    },
+};
+
+addProvider(customProvider);
+```
