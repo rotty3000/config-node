@@ -1,16 +1,15 @@
-import {dxpConfig, initConfig} from 'config-lxc';
-import {lookupConfig} from 'config-node';
+import {lxcConfig, lookupConfig} from '@rotty3000/config-node';
 
-const dxpMainDomain = dxpConfig['com.liferay.lxc.dxp.main.domain']();
+const dxpMainDomain = lxcConfig.dxpMainDomain();
 console.log('dxpMainDomain', dxpMainDomain);
 
-const application1 = initConfig.get('lxc-config-json-1');
+const application1 = lxcConfig.oauthApplication('lxc-config-json-1');
 
 if (application1) {
-  const outhUserAgentScopes = application1['oauth2.user.agent.scopes']();
-  console.log('outhUserAgentScopes ', outhUserAgentScopes);
-  const outhHeadlessServerClientId = application1['oauth2.headless.server.client.id']();
-  console.log('outhHeadlessServerClientId ', outhHeadlessServerClientId);
+  const oauthUserAgentScopes = application1.scopes();
+  console.log('oauthUserAgentScopes ', oauthUserAgentScopes);
+  const oauthHeadlessServerClientId = application1.clientId();
+  console.log('oauthHeadlessServerClientId ', oauthHeadlessServerClientId);
 }
 
 const customConfig = lookupConfig('custom.configuration');
