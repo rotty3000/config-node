@@ -41,7 +41,7 @@ describe('lxcConfig', function () {
     assert.isNotNull(initConfig['foo'])
   });
 
-  it('should handle ERCs that have common delimited id list', function () {
+  it('should handle ERCs that have comma (,) delimited id list', function () {
     process.env.LIFERAY_OAUTH_APPLICATION_EXTERNAL_REFERENCE_CODES = 'foo,bar'
     
     assert.isNotNull(initConfig['foo'])
