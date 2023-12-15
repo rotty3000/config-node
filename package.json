@@ -2,8 +2,11 @@
   "name": "@rotty3000/config-node",
   "version": "0.1.0",
   "description": "A library for obtaining external configuration for your application.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "clean": "rm -rf dist",
+    "prepublish": "tsc",
     "build": "tsc",
     "run": "node dist/src/index.js",
     "test": "tsc && ts-mocha test/*.ts"

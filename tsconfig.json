@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "declaration": true,
     "module": "commonjs",
     "esModuleInterop": true,
     "target": "es6",
@@ -8,7 +9,7 @@
     "outDir": "dist"
   },
   "lib": ["es2015"],
-  "exclude": [
-    "examples/*.ts"
+  "include": [
+    "src/"
   ]
 }
