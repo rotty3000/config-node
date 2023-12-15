@@ -21,12 +21,14 @@ export const dxpConfig: DXPConfigType = {
 
 export const initConfig = new Map<string, InitConfigType>();
 
-const ercs = lookupConfig('liferay.oauth.application.external.reference.codes') as string[];
+let ercs = lookupConfig('liferay.oauth.application.external.reference.codes');
 
 if (ercs) {
+  ercs = Array.isArray(ercs) ? ercs : [ercs];
+
   ercs.forEach(
     erc => {
-      console.log(`processing ${erc}`);
+      // console.log(`processing ${erc}`);
       initConfig.set(erc, {
         'oauth2.authorization.uri': () => lookupConfig(`${erc}.oauth2.authorization.uri`),
         'oauth2.headless.server.audience': () => lookupConfig(`${erc}.oauth2.headless.server.audience`),
