@@ -3,7 +3,8 @@ import {lookupConfig} from '../config-node';
 // type definitions
 type ConfigValueFunctionType = () => string | string[] | undefined;
 
-export type DXPConfigKey = 'com.liferay.lxc.dxp.domains' | 'com.liferay.lxc.dxp.mainDomain' | 'com.liferay.lxc.dxp.server.protocol';
+export type DXPConfigKey = 'com.liferay.lxc.dxp.domains' | 'com.liferay.lxc.dxp.main.domain' | 'com.liferay.lxc.dxp.mainDomain' |
+  'com.liferay.lxc.dxp.server.protocol';
 export type InitConfigKey = 'oauth2.authorization.uri' | 'oauth2.headless.server.audience' | 'oauth2.headless.server.client.id' |
   'oauth2.headless.server.client.secret' | 'oauth2.headless.server.scopes' | 'oauth2.introspection.uri' | 'oauth2.jwks.uri' |
   'oauth2.token.uri' | 'oauth2.user.agent.audience' | 'oauth2.user.agent.client.id' | 'oauth2.user.agent.scopes';
@@ -13,6 +14,7 @@ export type InitConfigType = Record<InitConfigKey, ConfigValueFunctionType>;
 
 export const dxpConfig: DXPConfigType = {
   'com.liferay.lxc.dxp.domains': () => lookupConfig('com.liferay.lxc.dxp.domains'),
+  'com.liferay.lxc.dxp.main.domain': () => lookupConfig('com.liferay.lxc.dxp.main.domain'),
   'com.liferay.lxc.dxp.mainDomain': () => lookupConfig('com.liferay.lxc.dxp.mainDomain'),
   'com.liferay.lxc.dxp.server.protocol': () => lookupConfig('com.liferay.lxc.dxp.server.protocol'),
 };

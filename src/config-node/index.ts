@@ -39,6 +39,11 @@ export function addProvider(provider: ConfigProvider) {
   configProviders.sort(compareProviders);
 }
 
+export function clearCache() {
+  configProviders.forEach(configProvider => configProvider.cache.clear());
+  commonCache.clear();
+}
+
 addProvider({
   description: "From ~/.config-node-devtools.json",
   priority: 11000,

@@ -1,4 +1,4 @@
-import {lookupConfig, defaultConfig, addProvider, ConfigProvider} from '../src/config-node';
+import {addProvider, clearCache, ConfigProvider, defaultConfig, lookupConfig} from '../src/config-node';
 import {assert} from 'chai';
 import sinon from 'sinon';
 import fs from 'fs';
@@ -24,6 +24,7 @@ describe('lookupConfig', function () {
     process.env.COM_LIFERAY_LXC_DXP_MAINDOMAIN = com_liferay_lxc_dxp_maindomain_env;
     process.argv = initial_argv;
     sinon.restore();
+    clearCache();
   });
 
   it('should return undefined when not present', function () {
