@@ -1,5 +1,5 @@
-import {dxpConfig, initConfig} from './lxc-config';
-import {lookupConfig} from './config-node';
+import {dxpConfig, initConfig} from 'config-lxc';
+import {lookupConfig} from 'config-node';
 
 const dxpMainDomain = dxpConfig['com.liferay.lxc.dxp.main.domain']();
 console.log('dxpMainDomain', dxpMainDomain);
