@@ -1,5 +1,5 @@
-import {dxpConfig, initConfig} from '../src/lxc-config';
 import {clearCache} from '../src/config-node';
+import {lxcConfig} from '../src/config-lxc';
 import {assert} from 'chai';
 
 describe('lxcConfig', function () {
@@ -20,31 +20,36 @@ describe('lxcConfig', function () {
     clearCache();
   });
 
-  it('should return main domain from both mainDomain or main.domain is specified', function () {
+  it('should return main domain from both mainDomain or main.domain is specified (mainDomain)', function () {
     process.env.COM_LIFERAY_LXC_DXP_MAINDOMAIN = 'localhost:8080';
+
+    assert.equal(
+      lxcConfig.dxpMainDomain(),
+      'localhost:8080'
+    );
+  });
+
+  it('should return main domain from both mainDomain or main.domain is specified (main.domain)', function () {
     process.env.COM_LIFERAY_LXC_DXP_MAIN_DOMAIN = 'localhost:8080';
 
     assert.equal(
-      dxpConfig['com.liferay.lxc.dxp.mainDomain'](),
-      'localhost:8080'
-    );
-
-    assert.equal(
-      dxpConfig['com.liferay.lxc.dxp.main.domain'](),
+      lxcConfig.dxpMainDomain(),
       'localhost:8080'
     );
   });
 
   it('should handle ERCs that just have a single item', function () {
-    process.env.LIFERAY_OAUTH_APPLICATION_EXTERNAL_REFERENCE_CODES = 'foo'
-    
-    assert.isNotNull(initConfig['foo'])
+    process.env.LIFERAY_OAUTH_APPLICATION_EXTERNAL_REFERENCE_CODES = 'foo';
+
+    assert.isDefined(lxcConfig.oauthApplication('foo'));
+    assert.isUndefined(lxcConfig.oauthApplication('bar'));
   });
 
   it('should handle ERCs that have comma (,) delimited id list', function () {
-    process.env.LIFERAY_OAUTH_APPLICATION_EXTERNAL_REFERENCE_CODES = 'foo,bar'
-    
-    assert.isNotNull(initConfig['foo'])
-    assert.isNotNull(initConfig['bar'])
+    process.env.LIFERAY_OAUTH_APPLICATION_EXTERNAL_REFERENCE_CODES = 'foo,bar';
+
+    assert.isDefined(lxcConfig.oauthApplication('foo'))
+    assert.isDefined(lxcConfig.oauthApplication('bar'))
+    assert.isUndefined(lxcConfig.oauthApplication('baz'))
   });
 });
