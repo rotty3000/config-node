@@ -1,10 +1,10 @@
 # config-node
 A library for obtaining external configuration for your application.
 
-## usage
+## Usage
 
 ```typescript
-import {lookupConfig, defaultConfig} from 'config-node';
+import {lookupConfig, defaultConfig} from '@rotty3000/config-node';
 
 // It's best not to store the value and to always look it up because some providers are able to invalidate their caches in order to give updated values
 let value = lookupConfig('a.configuration.key');
@@ -15,7 +15,7 @@ let value = lookupConfig('a.configuration.key');
 defaultConfig('config.node.config.trees', ['/configtree']);
 ```
 
-## sources of configuration
+## Sources of Configuration
 
 The following configuration sources are used in order of precedence.
 
@@ -47,12 +47,12 @@ The following configuration sources are used in order of precedence.
    defaultConfig('my.custom.config', 'some value');
    ```
 
-## custom providers
+## Custom Providers
 
 Custom providers can be added as middle ware to without affecting other parts of the code.
 
 ```typescript
-import {addProvider, ConfigProvider} from 'config-node';
+import {addProvider, ConfigProvider} from '@rotty3000/config-node';
 
 const customProvider: ConfigProvider = {
     description: "From a database, vault or whatever",

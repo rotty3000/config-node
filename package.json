@@ -8,8 +8,8 @@
     "clean": "rm -rf dist",
     "prepublish": "tsc",
     "build": "tsc",
-    "run": "node dist/src/index.js",
-    "test": "tsc && ts-mocha test/*.ts"
+    "run": "npm run clean && npm run build && node dist/src/index.js",
+    "test": "npm run clean && npm run build && ts-mocha test/*.ts"
   },
   "author": "Raymond Augé",
   "license": "Apache-2.0",
