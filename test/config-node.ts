@@ -1,7 +1,7 @@
 import {addProvider, clearCache, ConfigProvider, defaultConfig, lookupConfig} from '../src/config-node';
 import {assert} from 'chai';
 import sinon from 'sinon';
-import fs from 'fs';
+import fs from 'node:fs';
 import os from 'os';
 
 describe('lookupConfig', function () {
@@ -53,7 +53,7 @@ describe('lookupConfig', function () {
 
   it('should return value from APPLICATION_JSON env containing inline JSON', function () {
     process.env.APPLICATION_JSON = '{"com.liferay.lxc.dxp.server.protocol": "from APPLICATION_JSON env"}';
-    
+
     assert.equal(
       lookupConfig('com.liferay.lxc.dxp.server.protocol'),
       'from APPLICATION_JSON env'
@@ -62,7 +62,7 @@ describe('lookupConfig', function () {
 
   it('should return value from command line arg --application.json=<json> (inline JSON)', function () {
     process.argv.push('--application.json={"com.liferay.lxc.dxp.server.protocol": "from APPLICATION_JSON env"}');
-    
+
     assert.equal(
       lookupConfig('com.liferay.lxc.dxp.server.protocol'),
       'from APPLICATION_JSON env'
@@ -71,7 +71,7 @@ describe('lookupConfig', function () {
 
   it('should return value from environment variable (with mangled name) containing the value', function () {
     process.env.COM_LIFERAY_LXC_DXP_MAINDOMAIN = 'from COM_LIFERAY_LXC_DXP_MAINDOMAIN env';
-    
+
     assert.equal(
       lookupConfig('com.liferay.lxc.dxp.mainDomain'),
       'from COM_LIFERAY_LXC_DXP_MAINDOMAIN env'
@@ -172,13 +172,10 @@ describe('lookupConfig', function () {
     const customProvider: ConfigProvider = {
       description: "From a database, vault or whatever",
       priority: 100,
-      get: (cache, key) => {
+      get: (commonCache, providerCache, key) => {
         if (key == 'custom.key') {
           return 'custom value';
         }
-      },
-      cacheInvalid() {
-        return false;
       },
     };
 
