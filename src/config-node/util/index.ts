@@ -16,7 +16,6 @@ function computeIfAbsent(cache: Map<string, any>, key: string, fn: () => any): a
     }
 
     if (value) {
-      verbose && console.info(`computed value of '${key}' as '${value}'`);
       cache.set(key, value);
     }
   }
@@ -44,4 +43,4 @@ function unquote(it: any) {
   return it;
 }
 
-export {protectedKeys, computeIfAbsent, setVerbose, unquote};
+export {protectedKeys, computeIfAbsent, setVerbose, verbose, unquote};

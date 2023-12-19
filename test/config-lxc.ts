@@ -14,9 +14,24 @@ describe('lxcConfig', function () {
   });
 
   afterEach(() => {
-    process.env.COM_LIFERAY_LXC_DXP_MAINDOMAIN = com_liferay_lxc_dxp_maindomain_env;
-    process.env.COM_LIFERAY_LXC_DXP_MAIN_DOMAIN = com_liferay_lxc_dxp_main_domain_env;
-    process.env.LIFERAY_OAUTH_APPLICATION_EXTERNAL_REFERENCE_CODES = liferay_oauth_application_external_reference_codes;
+    if (!com_liferay_lxc_dxp_maindomain_env) {
+      delete process.env.COM_LIFERAY_LXC_DXP_MAINDOMAIN;
+    }
+    else {
+      process.env.COM_LIFERAY_LXC_DXP_MAINDOMAIN = com_liferay_lxc_dxp_maindomain_env;
+    }
+    if (!com_liferay_lxc_dxp_main_domain_env) {
+      delete process.env.COM_LIFERAY_LXC_DXP_MAIN_DOMAIN;
+    }
+    else {
+      process.env.COM_LIFERAY_LXC_DXP_MAIN_DOMAIN = com_liferay_lxc_dxp_main_domain_env;
+    }
+    if (!liferay_oauth_application_external_reference_codes) {
+      delete process.env.LIFERAY_OAUTH_APPLICATION_EXTERNAL_REFERENCE_CODES;
+    }
+    else {
+      process.env.LIFERAY_OAUTH_APPLICATION_EXTERNAL_REFERENCE_CODES = liferay_oauth_application_external_reference_codes;
+    }
     clearCache();
   });
 

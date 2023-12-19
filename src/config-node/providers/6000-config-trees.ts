@@ -7,7 +7,7 @@ import {computeIfAbsent, protectedKeys, unquote} from "../util";
 export const configTrees: ConfigProvider = {
   description: "From config tree directories (a.k.a. Volume mounted ConfigMaps/Secrets)",
   priority: 6000,
-  get: (commonCache, providerCache, key) => {
+  get: (key, providerCache) => {
     if (protectedKeys.includes(key)) {
       return;
     }

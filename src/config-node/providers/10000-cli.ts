@@ -4,7 +4,7 @@ import {computeIfAbsent, unquote} from "../util";
 export const cli: ConfigProvider = {
   description: "From command line arguments (--key=value)",
   priority: 1000,
-  get: (commonCache, providerCache, key) => computeIfAbsent(providerCache, `process.args.${key}`, () => {
+  get: (key, providerCache) => computeIfAbsent(providerCache, `process.args.${key}`, () => {
     const prefix = `--${key}=`
     for (var arg of process.argv) {
       if (arg.startsWith(prefix)) {

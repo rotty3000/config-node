@@ -60,14 +60,17 @@ Custom providers can be added as middle ware to without affecting other parts of
 import {addProvider, ConfigProvider} from '@rotty3000/config-node';
 
 const customProvider: ConfigProvider = {
-    description: "From a database, vault or whatever",
-    priority: 100,
-    get: (commonCache, providerCache, key) => {
-        // if the work is hard, put the value in the local cache for better performance over repeated uses.
-        if (key == 'custom.key') {
-            return 'custom value';
-        }
-    },
+  description: "From a database, vault or whatever",
+  priority: 100,
+  get: (key, providerCache, commonCache) => {
+    // If the work is hard, put the value in providerCache for better performance over repeat get operations.
+    // The provider is free to hold the providerCache var and clear it when it deems fit to return updated values.
+    // commonCache is a cache common to all providers and where values not specific to the provider can be stored in order to improve performance (e.g. `cwd`, `homedir`, etc.)
+
+    if (key == 'custom.key') {
+      return 'custom value';
+    }
+  },
 };
 
 addProvider(customProvider);

@@ -6,7 +6,7 @@ import {computeIfAbsent, unquote} from "../util";
 export const application: ConfigProvider = {
   description: "From application property json files in ${CWD}",
   priority: 2000,
-  get: (commonCache, providerCache, key) => {
+  get: (key, providerCache, commonCache) => {
     const cwd = computeIfAbsent(commonCache, 'cwd', () => process.cwd());
     const configPath = path.join(cwd, 'application.json');
     if (fs.existsSync(configPath)) {

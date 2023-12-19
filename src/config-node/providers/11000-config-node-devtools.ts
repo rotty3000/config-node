@@ -7,7 +7,7 @@ import {computeIfAbsent, unquote} from '../util';
 export const configNodeDevtools: ConfigProvider = {
   description: "From ~/.config-node-devtools.json",
   priority: 11000,
-  get: (commonCache, providerCache, key) => computeIfAbsent(providerCache, key, () => {
+  get: (key, providerCache, commonCache) => computeIfAbsent(providerCache, key, () => {
     const homedir = computeIfAbsent(commonCache, 'homedir', () => os.homedir());
     const filePath = path.join(homedir, '.config-node-devtools.json');
     if (fs.existsSync(filePath)) {

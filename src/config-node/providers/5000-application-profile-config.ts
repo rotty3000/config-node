@@ -7,7 +7,7 @@ import {computeIfAbsent, protectedKeys, unquote} from "../util";
 export const applicationProfileConfig: ConfigProvider = {
   description: "From application profile property json files in ${CWD}/config",
   priority: 5000,
-  get: (commonCache, providerCache, key) => {
+  get: (key, providerCache, commonCache) => {
     if (protectedKeys.includes(key)) {
       return;
     }

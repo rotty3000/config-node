@@ -6,7 +6,7 @@ import {computeIfAbsent, unquote} from "../util";
 export const applicationPackaged: ConfigProvider = {
   description: "From application property json files packaged with the app",
   priority: 1000,
-  get: (commonCache, providerCache, key) => {
+  get: (key, providerCache, commonCache) => {
     const mainPath = computeIfAbsent(commonCache, 'require.main.path', () => require.main?.path);
     const configPath = path.join(mainPath, 'application.json');
     if (fs.existsSync(configPath)) {

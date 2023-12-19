@@ -1,4 +1,4 @@
-import {addProvider, clearCache, ConfigProvider, defaultConfig, lookupConfig} from '../src/config-node';
+import {addProvider, clearCache, ConfigProvider, defaultConfig, lookupConfig, setVerbose} from '../src/config-node';
 import {assert} from 'chai';
 import sinon from 'sinon';
 import fs from 'node:fs';
@@ -20,8 +20,18 @@ describe('lookupConfig', function () {
   });
 
   afterEach(() => {
-    process.env.APPLICATION_JSON = application_json_env;
-    process.env.COM_LIFERAY_LXC_DXP_MAINDOMAIN = com_liferay_lxc_dxp_maindomain_env;
+    if (!application_json_env) {
+      delete process.env.APPLICATION_JSON;
+    }
+    else {
+      process.env.APPLICATION_JSON = application_json_env;
+    }
+    if (!com_liferay_lxc_dxp_maindomain_env) {
+      delete process.env.COM_LIFERAY_LXC_DXP_MAINDOMAIN;
+    }
+    else {
+      process.env.COM_LIFERAY_LXC_DXP_MAINDOMAIN = com_liferay_lxc_dxp_maindomain_env;
+    }
     process.argv = initial_argv;
     sinon.restore();
     clearCache();
@@ -169,10 +179,12 @@ describe('lookupConfig', function () {
   });
 
   it('should return value from a custom provider', function () {
+    setVerbose(true);
+
     const customProvider: ConfigProvider = {
       description: "From a database, vault or whatever",
       priority: 100,
-      get: (commonCache, providerCache, key) => {
+      get: (key) => {
         if (key == 'custom.key') {
           return 'custom value';
         }

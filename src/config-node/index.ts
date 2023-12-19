@@ -11,6 +11,7 @@ import {applicationConfig} from './providers/3000-application-config';
 import {application} from './providers/2000-application';
 import {applicationPackaged} from './providers/1000-application-packaged';
 import {programmatic} from './providers/0000-programmatic';
+import {setVerbose, verbose} from './util';
 
 class ConfigProviderHolder {
   readonly priority: number;
@@ -45,20 +46,24 @@ function lookupConfig(key: string): string | string[] | undefined {
   let value: any;
 
   for (var holder of configProviderHolders) {
-    value = holder.provider.get(commonCache, holder.cache, key);
-    if (typeof value === 'string') {
+    value = holder.provider.get(key, holder.cache, commonCache);
+
+    if (value) {
+      if (Array.isArray(value)) {
+        if (value.length > 0 && typeof value[0] === 'string') {
+          value = value as string[];
+        }
+        else {
+          value = [] as string[];
+        }
+      }
+      else if (typeof value !== 'string') {
+        value = JSON.stringify(value);
+      }
+
+      verbose && console.debug(`Provider [${holder.provider.description}] returned:`, value);
+
       return value;
-    }
-    else if (Array.isArray(value)) {
-      if (value.length > 0 && typeof value[0] === 'string') {
-        return value as string[];
-      }
-      else {
-        return [] as string[];
-      }
-    }
-    else if (value) {
-      return JSON.stringify(value);
     }
   }
 }
@@ -88,4 +93,4 @@ addProvider(
   programmatic
 );
 
-export {addProvider, clearCache, ConfigProvider, defaultConfig, lookupConfig};
+export {addProvider, clearCache, ConfigProvider, defaultConfig, lookupConfig, setVerbose};
