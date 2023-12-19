@@ -11,7 +11,7 @@ import {applicationConfig} from './providers/3000-application-config';
 import {application} from './providers/2000-application';
 import {applicationPackaged} from './providers/1000-application-packaged';
 import {programmatic} from './providers/0000-programmatic';
-import {setVerbose, verbose} from './util';
+import {computeIfAbsent, setVerbose, verbose} from './util';
 
 class ConfigProviderHolder {
   readonly priority: number;
@@ -28,20 +28,39 @@ class ConfigProviderHolder {
 const configProviderHolders: ConfigProviderHolder[] = [];
 const commonCache = new Map<string, any>();
 
+/**
+ * Register one or more configuration providers.
+ *
+ * @param providers: ConfigProvider[] - the providers
+ */
 function addProvider(...providers: ConfigProvider[]) {
   providers.forEach(provider => configProviderHolders.push(new ConfigProviderHolder(provider)));
   configProviderHolders.sort(_compareProviders);
 }
 
+/**
+ * A utility function to flush all the caches. (This is a hammer and should not generally be used. It's mostly useful un testing new provider implementations.)
+ */
 function clearCache() {
   configProviderHolders.forEach(configProvider => configProvider.cache.clear());
   commonCache.clear();
 }
 
+/**
+ * A utility function to set a default configuration value programmatically.
+ *
+ * @param key - the key under which to store the value
+ * @param value - the configuration value to store
+ */
 function defaultConfig(key: string, value: any): void {
   commonCache.set(key, value);
 }
 
+/**
+ * This function attempts to find a value for the given key which is looked up from the set of registered providers. This function is the workhorse of this API and is the main entrypoint for developers.
+ * @param key - the key to be looked up
+ * @returns a value which can be a string, a string[] or undefined
+ */
 function lookupConfig(key: string): string | string[] | undefined {
   let value: any;
 
@@ -93,4 +112,4 @@ addProvider(
   programmatic
 );
 
-export {addProvider, clearCache, ConfigProvider, defaultConfig, lookupConfig, setVerbose};
+export {addProvider, clearCache, computeIfAbsent, ConfigProvider, defaultConfig, lookupConfig, setVerbose};

@@ -1,3 +1,6 @@
+/**
+ * A ConfigProvider is an implementation that provides configuration. The source can be anything or anywhere.
+ */
 export interface ConfigProvider {
   /**
    * A description of the provider. Used only when verbose mode is enabled.
@@ -15,8 +18,8 @@ export interface ConfigProvider {
    * Get a value from the provider for a given key.
    *
    * @param {string}            k             - the key
-   * @param {Map<string, any>=} providerCache - the cache specific to the provider where provider specific values can be stored in order to improve performance
-   * @param {Map<string, any>=} commonCache   - the cache common to all providers where values not specific to the provider can be stored in order to improve performance (e.g. `cwd`, `homedir`, etc.)
+   * @param {Map<string, any>} providerCache - a cache specific to the provider where provider specific values can be stored in order to improve performance
+   * @param {Map<string, any>} commonCache   - the cache common to all providers where values not specific to the provider can be stored in order to improve performance (e.g. `cwd`, `homedir`)
    */
-  readonly get: (k: string, providerCache?: Map<string, any>, commonCache?: Map<string, any>) => any,
+  readonly get: (k: string, providerCache: Map<string, any>, commonCache: Map<string, any>) => any,
 }

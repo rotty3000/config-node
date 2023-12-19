@@ -1,4 +1,4 @@
-import {addProvider, clearCache, ConfigProvider, defaultConfig, lookupConfig, setVerbose} from '../src/config-node';
+import {addProvider, clearCache, computeIfAbsent, ConfigProvider, defaultConfig, lookupConfig, setVerbose} from '../src/config-node';
 import {assert} from 'chai';
 import sinon from 'sinon';
 import fs from 'node:fs';
@@ -184,11 +184,11 @@ describe('lookupConfig', function () {
     const customProvider: ConfigProvider = {
       description: "From a database, vault or whatever",
       priority: 100,
-      get: (key) => {
-        if (key == 'custom.key') {
-          return 'custom value';
-        }
-      },
+      get: (key, providerCache) => computeIfAbsent(
+        providerCache,
+        key,
+        () => key == 'custom.key' && 'custom value'
+      ),
     };
 
     addProvider(customProvider);

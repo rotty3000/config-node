@@ -57,7 +57,7 @@ The following configuration sources are used in order of precedence.
 Custom providers can be added as middle ware to without affecting other parts of the code.
 
 ```typescript
-import {addProvider, ConfigProvider} from '@rotty3000/config-node';
+import {addProvider, computeIfAbsent, ConfigProvider} from '@rotty3000/config-node';
 
 const customProvider: ConfigProvider = {
   description: "From a database, vault or whatever",
@@ -67,9 +67,11 @@ const customProvider: ConfigProvider = {
     // The provider is free to hold the providerCache var and clear it when it deems fit to return updated values.
     // commonCache is a cache common to all providers and where values not specific to the provider can be stored in order to improve performance (e.g. `cwd`, `homedir`, etc.)
 
-    if (key == 'custom.key') {
-      return 'custom value';
-    }
+    return computeIfAbsent(
+      providerCache,
+      key,
+      () => key == 'custom.key' && 'custom value'
+    );
   },
 };
 

@@ -5,6 +5,14 @@ const protectedKeys = [
   'config.node.profiles.active'
 ];
 
+/**
+ * A utility function for providers that implements lazy computation of values when the cache does not contain the specified key.
+ *
+ * @param cache - the cache against which to lookup and store the value
+ * @param key - the key to lookup and store the value under
+ * @param fn - the function that will compute the value when no key is found in the cache
+ * @returns the cached value (having been computed and added to the cache if absent when requested)
+ */
 function computeIfAbsent(cache: Map<string, any>, key: string, fn: () => any): any {
   let value = cache.get(key);
 
@@ -23,6 +31,11 @@ function computeIfAbsent(cache: Map<string, any>, key: string, fn: () => any): a
   return value;
 }
 
+/**
+ * A utility function to enable verbose output from this library, convenient for debugging.
+ *
+ * @param b - verbose if true, false otherwise
+ */
 function setVerbose(b : boolean) {
   verbose = b;
 }
