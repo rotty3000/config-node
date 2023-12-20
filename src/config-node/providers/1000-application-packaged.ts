@@ -8,11 +8,13 @@ export const applicationPackaged: ConfigProvider = {
   priority: 1000,
   get: (key, providerCache, commonCache) => {
     const mainPath = computeIfAbsent(commonCache, 'require.main.path', () => require.main?.path);
-    const configPath = path.join(mainPath, 'application.json');
-    if (fs.existsSync(configPath)) {
-      const json = computeIfAbsent(providerCache, configPath, () => JSON.parse(fs.readFileSync(configPath, 'utf8')));
-      if (json) {
-        return unquote(json[key]);
+    if (mainPath) {
+      const configPath = path.join(mainPath, 'application.json');
+      if (fs.existsSync(configPath)) {
+        const json = computeIfAbsent(providerCache, configPath, () => JSON.parse(fs.readFileSync(configPath, 'utf8')));
+        if (json) {
+          return unquote(json[key]);
+        }
       }
     }
   },
