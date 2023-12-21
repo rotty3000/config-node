@@ -1,6 +1,10 @@
 # @rotty3000/config-node
 A library for obtaining external configuration for your application.
 
+This library lets you externalize the configuration of your application so that it can work without any changes in different environments. You use JSON files, environment variables, command line arguments or other well known sources like [Volume Mounted Kubernetes ConfigMaps (or Secrets)](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#add-configmap-data-to-a-volume) to deliver configuration to your application without changing a single line. Property values can be looked up anywhere in your code by using the `lookupConfig` function.
+
+Optionally [custom providers](#custom-providers) can be added to search more exotic sources of configuration like a database, key/value store or secrets vault.
+
 ## Usage
 
 ```typescript
@@ -17,12 +21,12 @@ defaultConfig('config.node.config.trees', ['/configtree']);
 
 ## Sources of Configuration
 
-The following configuration sources are used in order of precedence.
+The following configuration providers are pre-packaged and searched in order of precedence until a value is found.
 
-1. A JSON file `~/.config-node-devtools.json` in the user home directory which contains configuration keys (following example above `{"a.configuration.key": {"some.value": "foo"}`)
+1. A JSON file `~/.config-node-devtools.json` in the user home directory which contains configuration keys. (See [Structure of JSON configuration](#structure-of-json-configuration).)
 1. Command line arguments formatted as `--key=value`.
-1. From command line argument `--application.json=<json>` where the inline JSON is structured as in 1.
-1. Properties from the `APPLICATION_JSON` environment variable whose value is inline JSON
+1. From command line argument `--application.json=<json>` where the inline JSON is structured as in 1. (See [Structure of JSON configuration](#structure-of-json-configuration).)
+1. Properties from the `APPLICATION_JSON` environment variable whose value is inline JSON. (See [Structure of JSON configuration](#structure-of-json-configuration).)
 1. From individual environment variables (following name mangling rules):
    * Replace dots (.) with underscores (_).
    * Remove any dashes (-).
@@ -40,17 +44,30 @@ The following configuration sources are used in order of precedence.
    _e.g._
 
    Given a Kubernetes ConfigMap or Secret mounted at `/config-map` with a data file located at `/config-map/a.config.map.key`, looking up the property `a.config.map.key` will return the contents of the file as the value.
-1. From application profile property json files in `${CWD}/config/application-{profile}.json` where _profile_ is set using the property `config.node.profiles.active` (using any of the sources described in this list, for instance as an environment variable `CONFIG_NODE_PROFILES_ACTIVE=test`).
-1. From application profile property json files in `${CWD}/application-{profile}.json` where _profile_ is set using the property `config.node.profiles.active` (using any of the sources described in this list, for instance as an environment variable `CONFIG_NODE_PROFILES_ACTIVE=test`).
-1. From application property json files in `${CWD}/config/application.json`.
-1. From application property json files in `${CWD}/application.json`.
-1. From application property json files packaged with the node.js app (i.e. adjacent to the main script).
+1. From application profile property json files in `${CWD}/config/application-{profile}.json` where _profile_ is set using the property `config.node.profiles.active` (using any of the sources described in this list, for instance as an environment variable `CONFIG_NODE_PROFILES_ACTIVE=test`). (See [Structure of JSON configuration](#structure-of-json-configuration).)
+1. From application profile property json files in `${CWD}/application-{profile}.json` where _profile_ is set using the property `config.node.profiles.active` (using any of the sources described in this list, for instance as an environment variable `CONFIG_NODE_PROFILES_ACTIVE=test`). (See [Structure of JSON configuration](#structure-of-json-configuration).)
+1. From application property json files in `${CWD}/config/application.json`. (See [Structure of JSON configuration](#structure-of-json-configuration).)
+1. From application property json files in `${CWD}/application.json`. (See [Structure of JSON configuration](#structure-of-json-configuration).)
+1. From application property json files packaged with the node.js app (i.e. adjacent to the main script). (See [Structure of JSON configuration](#structure-of-json-configuration).)
 1. From programer provided defaults. As demonstrated in the sample code above a developer can pre-set values to act as the defaults when no other source provides a value.
 
    e.g.
    ```typescript
    defaultConfig('my.custom.config', 'some value');
    ```
+
+## Structure of JSON configuration
+
+The configuration JSON structure expects keys to be at the root, as follows:
+
+```json
+{
+  "key.with.array.value": ["one", "two"],
+  "key.with.object.value": {"some.value": "foo"},
+  "key.with.number.value": 5,
+  "key.with.string.value": "dev",
+}
+```
 
 ## Custom Providers
 
@@ -60,7 +77,7 @@ Custom providers can be added as middle ware to without affecting other parts of
 import {addProvider, computeIfAbsent, ConfigProvider} from '@rotty3000/config-node';
 
 const customProvider: ConfigProvider = {
-  description: "From a database, vault or whatever",
+  description: "From a database, key value store or secrets vault",
   priority: 100,
   get: (key, providerCache, commonCache) => {
     // If the work is hard, put the value in providerCache for better performance over repeat get operations.
