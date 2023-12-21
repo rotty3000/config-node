@@ -6,7 +6,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "clean": "rm -rf dist",
-    "prepublish": "tsc",
+    "prepublish": "npm run clean && tsc",
     "build": "tsc",
     "run": "npm run clean && npm run build && node dist/src/index.js",
     "test": "npm run clean && npm run build && ts-mocha test/*.ts"
