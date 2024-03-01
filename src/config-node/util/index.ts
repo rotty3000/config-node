@@ -1,9 +1,36 @@
+import path from 'path';
+import fs from 'fs';
+
 let verbose: boolean = false;
 
 const protectedKeys = [
   'config.node.config.trees',
   'config.node.profiles.active'
 ];
+
+function findProjectRoot(currentPath = process.cwd()) {
+  const hasPackageJson = fs.existsSync(path.join(currentPath, 'package.json'));
+
+  if (hasPackageJson) {
+    return currentPath;
+  }
+
+  if (currentPath === path.resolve('/')) {
+    throw new Error('Unable to find project root');
+  }
+
+  return findProjectRoot(path.dirname(currentPath));
+}
+/**
+ * A utility function to get the root folder of the parent project, use this function to get the application.json file
+ * when it's packaged in the client extension files.
+ * */
+function getProjectRoot() {
+  const currentWorkingDirectory = process.cwd();
+  const projectRoot = findProjectRoot(currentWorkingDirectory);
+
+  return projectRoot;
+}
 
 /**
  * A utility function for providers that implements lazy computation of values when the cache does not contain the specified key.
@@ -56,4 +83,4 @@ function unquote(it: any) {
   return it;
 }
 
-export {protectedKeys, computeIfAbsent, setVerbose, verbose, unquote};
+export {protectedKeys, computeIfAbsent, setVerbose, verbose, unquote, getProjectRoot};
