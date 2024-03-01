@@ -7,7 +7,13 @@ export const applicationPackaged: ConfigProvider = {
   description: "From application property json files packaged with the app",
   priority: 1000,
   get: (key, providerCache, commonCache) => {
-    const mainPath = getProjectRoot();
+    const mainPath = computeIfAbsent(commonCache, 'require.main.path', () => {
+      const mainPath = getProjectRoot();
+      if (mainPath) {
+        return mainPath;
+      }
+      return require.main?.path;
+    });
     if (mainPath) {
       const configPath = path.join(mainPath, 'application.json');
       if (fs.existsSync(configPath)) {
