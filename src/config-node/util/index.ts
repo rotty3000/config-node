@@ -16,7 +16,7 @@ function findProjectRoot(currentPath = process.cwd()) {
   }
 
   if (currentPath === path.resolve('/')) {
-    throw new Error('Unable to find project root');
+    return null;
   }
 
   return findProjectRoot(path.dirname(currentPath));
@@ -46,7 +46,7 @@ function computeIfAbsent(cache: Map<string, any>, key: string, fn: () => any): a
   if (!value) {
     try {
       value = fn();
-    } catch(e) {
+    } catch (e) {
       verbose && console.error(e);
     }
 
@@ -63,7 +63,7 @@ function computeIfAbsent(cache: Map<string, any>, key: string, fn: () => any): a
  *
  * @param b - verbose if true, false otherwise
  */
-function setVerbose(b : boolean) {
+function setVerbose(b: boolean) {
   verbose = b;
 }
 
