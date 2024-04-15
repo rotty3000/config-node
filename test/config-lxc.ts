@@ -1,6 +1,6 @@
 import {clearCache} from '../src/config-node';
 import {lxcConfig} from '../src/config-lxc';
-import {assert} from 'chai';
+import {assert, expect} from 'chai';
 
 describe('lxcConfig', function () {
   let com_liferay_lxc_dxp_maindomain_env;
@@ -66,5 +66,19 @@ describe('lxcConfig', function () {
     assert.isDefined(lxcConfig.oauthApplication('foo'))
     assert.isDefined(lxcConfig.oauthApplication('bar'))
     assert.isUndefined(lxcConfig.oauthApplication('baz'))
+  });
+
+  it('should return array from "dxpDomains()" when there is one expected value', function () {
+    process.env.COM_LIFERAY_LXC_DXP_DOMAINS = 'foo';
+
+    let domains = lxcConfig.dxpDomains();
+    expect(domains).to.include.members(['foo']);
+  });
+
+  it('should return array from "dxpDomains()" when there are two expected values', function () {
+    process.env.COM_LIFERAY_LXC_DXP_DOMAINS = 'foo\nbar';
+
+    let domains = lxcConfig.dxpDomains();
+    expect(domains).to.include.members(['foo', 'bar']);
   });
 });

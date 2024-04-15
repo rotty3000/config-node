@@ -27,7 +27,7 @@ export interface LXCConfig {
 const oauthApplications = new Map<string, LXCOAuthApplication>();
 
 export const lxcConfig: LXCConfig = {
-  dxpDomains: () => lookupConfig('com.liferay.lxc.dxp.domains') as string[],
+  dxpDomains: () => (lookupConfig('com.liferay.lxc.dxp.domains') as string).split('\n'),
   dxpMainDomain: () => {
     let value = lookupConfig('com.liferay.lxc.dxp.main.domain') as string;
     if (!value) {
