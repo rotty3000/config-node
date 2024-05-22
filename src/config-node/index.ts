@@ -25,8 +25,14 @@ class ConfigProviderHolder {
   }
 }
 
+class KeyProviderPair {
+  readonly key: string;
+  readonly provider: ConfigProvider;
+}
+
 const configProviderHolders: ConfigProviderHolder[] = [];
 const commonCache = new Map<string, any>();
+const stack: KeyProviderPair[] = [];
 
 /**
  * Register one or more configuration providers.
@@ -65,36 +71,79 @@ function lookupConfig(key: string): string | string[] | undefined {
   let value: any;
 
   for (var holder of configProviderHolders) {
-    value = holder.provider.get(key, holder.cache, commonCache);
+    const pair = {key, provider: holder.provider};
 
-    if (value) {
-      if (Array.isArray(value)) {
-        if (value.length > 0 && typeof value[0] === 'string') {
-          value = value as string[];
+    if (stack.find(p => p.key === pair.key && p.provider === pair.provider)) {
+      continue;
+    }
+
+    stack.push(pair);
+
+    try {
+      value = holder.provider.get(key, holder.cache, commonCache);
+
+      if (value) {
+        if (Array.isArray(value)) {
+          if (value.length > 0 && typeof value[0] === 'string') {
+            value = value as string[];
+          }
+          else {
+            value = [] as string[];
+          }
+
+          value = (value as string[]).map(v => _interpolatePlaceholders(v));
+        }
+        else if (typeof value !== 'string') {
+          value = JSON.stringify(value);
+
+          value = _interpolatePlaceholders(value);
         }
         else {
-          value = [] as string[];
+          value = _interpolatePlaceholders(value);
         }
-      }
-      else if (typeof value !== 'string') {
-        value = JSON.stringify(value);
-      }
 
-      verbose && console.debug(`Provider [${holder.provider.description}] returned:`, value);
+        verbose && console.debug(`Provider [${holder.provider.description}] returned:`, value);
 
-      return value;
+        return value;
+      }
+    }
+    finally {
+      stack.pop();
     }
   }
 }
 
 function _compareProviders(a: ConfigProviderHolder, b: ConfigProviderHolder) {
-  if ( a.priority < b.priority ){
+  if (a.priority < b.priority) {
     return 1;
   }
-  if ( a.priority > b.priority ){
+  if (a.priority > b.priority) {
     return -1;
   }
   return 0;
+}
+
+function _interpolatePlaceholders(v: string): any {
+  const regex = /\$\{[^\$]+?\}/;
+
+  let match = regex.exec(v);
+
+  while (match) {
+    verbose && console.debug("Match:", match);
+
+    const key = match[0].slice(2, -1);
+    const lookedUpValue = lookupConfig(key) as string;
+
+    if (lookedUpValue) {
+      v = v.replace(match[0], lookedUpValue)
+      match = regex.exec(v);
+    }
+    else {
+      match = undefined;
+    }
+  }
+
+  return v;
 }
 
 addProvider(

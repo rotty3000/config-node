@@ -100,14 +100,19 @@ describe('lookupConfig', function () {
   });
 
   it('should return value from config trees (a.k.a. volume mounted ConfigMap/Secrets) (via ENV)', function () {
-    process.env.CONFIG_NODE_CONFIG_TREES = '/configtree2';
-    sinon.stub(fs, 'existsSync').withArgs("/configtree2/config.map.key.2").returns(true);
-    sinon.stub(fs, 'readFileSync').withArgs("/configtree2/config.map.key.2", 'utf8').returns('config map value 2');
+    try {
+      process.env.CONFIG_NODE_CONFIG_TREES = '/configtree2';
+      sinon.stub(fs, 'existsSync').withArgs("/configtree2/config.map.key.2").returns(true);
+      sinon.stub(fs, 'readFileSync').withArgs("/configtree2/config.map.key.2", 'utf8').returns('config map value 2');
 
-    assert.equal(
-      lookupConfig('config.map.key.2'),
-      'config map value 2'
-    );
+      assert.equal(
+        lookupConfig('config.map.key.2'),
+        'config map value 2'
+      );
+    }
+    finally {
+      delete process.env.CONFIG_NODE_CONFIG_TREES;
+    }
   });
 
   it('should return value from application profile json in ${CWD}/config/application-{profile}.json', function () {
@@ -175,6 +180,79 @@ describe('lookupConfig', function () {
     assert.deepEqual(
       lookupConfig('a.default.key'),
       '{"key":"a default value"}'
+    );
+  });
+
+  it('should return interpolated value when the value contains placeholders in the form `${key}` where key is looked up', function () {
+    defaultConfig('a.other.key', 'the value of a.other.key');
+    defaultConfig('and.another', 'and the value of and.another');
+    defaultConfig('a.default.key', {'key': 'here is: ${a.other.key}, ${and.another}'});
+
+    assert.deepEqual(
+      lookupConfig('a.default.key'),
+      '{"key":"here is: the value of a.other.key, and the value of and.another"}'
+    );
+  });
+
+  it('should return interpolated value from environment variables', function () {
+    try {
+      process.env.VAR_ONE = 'env var one value';
+      process.env.VAR_TWO = 'env var two value';
+      defaultConfig('config.node.config.trees', ["${VAR_ONE}", "${VAR_TWO}"]);
+
+      assert.deepEqual(
+        lookupConfig('config.node.config.trees'),
+        ["env var one value", "env var two value"]
+      );
+    }
+    finally {
+      delete process.env.VAR_ONE;
+      delete process.env.VAR_TWO;
+    }
+  });
+
+  it('should interpolate placeholders recursively', function () {
+    try {
+      process.env.VAR_ONE = 'env var one value';
+      process.env.VAR_TWO = 'env var two ${VAR_THREE}';
+      process.env.VAR_THREE = 'references var three value';
+      defaultConfig('config.node.config.trees', ["${VAR_ONE}", "${VAR_TWO}"]);
+
+      assert.deepEqual(
+        lookupConfig('config.node.config.trees'),
+        ["env var one value", "env var two references var three value"]
+      );
+    }
+    finally {
+      delete process.env.VAR_ONE;
+      delete process.env.VAR_TWO;
+      delete process.env.VAR_THREE;
+    }
+  });
+
+  it('should interpolate nested placeholders', function () {
+    try {
+      process.env.VAR_ONE = 'env var one value';
+      process.env.VAR_TWO = 'ONE';
+      defaultConfig('a.nested.placeholder', '${VAR_${VAR_TWO}}');
+
+      assert.deepEqual(
+        lookupConfig('a.nested.placeholder'),
+        'env var one value'
+      );
+    }
+    finally {
+      delete process.env.VAR_ONE;
+      delete process.env.VAR_TWO;
+    }
+  });
+
+  it('should not fail if missing nested placeholders result in no value', function () {
+    defaultConfig('a.missing.nested.placeholder', '${VAR_${VAR_TWO}}');
+
+    assert.deepEqual(
+      lookupConfig('a.missing.nested.placeholder'),
+      '${VAR_${VAR_TWO}}'
     );
   });
 

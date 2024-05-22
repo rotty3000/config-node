@@ -56,6 +56,10 @@ The following configuration providers are pre-packaged and searched in order of 
    defaultConfig('my.custom.config', 'some value');
    ```
 
+## Interpolation of placeholders in config values
+
+When a value returned from a lookup contains a placeholder of the form `${key}` the `key` will be looked up and its value, if found, will replace the placeholder. A single value may contain multiple placeholders and it is also possible to have nested placeholders. For example; given the two environment variables `VAR_ONE="env var one value"` and `VAR_TWO="ONE"`, a third property `nested.placeholder=${VAR_${VAR_TWO}}` would result in the value `env var one value`.
+
 ## Structure of JSON configuration
 
 The configuration JSON structure expects keys to be at the root, as follows:
