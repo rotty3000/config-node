@@ -33,6 +33,7 @@ class KeyProviderPair {
 const configProviderHolders: ConfigProviderHolder[] = [];
 const commonCache = new Map<string, any>();
 const stack: KeyProviderPair[] = [];
+const regex = /\$\{[^\$]+?\}/;
 
 /**
  * Register one or more configuration providers.
@@ -140,12 +141,10 @@ function _compareProviders(a: ConfigProviderHolder, b: ConfigProviderHolder) {
 }
 
 function _interpolatePlaceholders(v: string): any {
-  const regex = /\$\{[^\$]+?\}/;
-
   let match = regex.exec(v);
 
   while (match) {
-    verbose && console.debug("Match:", match);
+    verbose && console.debug('Interpolating:', v, 'matched:', match);
 
     const key = match[0].slice(2, -1);
     const lookedUpValue = lookupConfig(key) as string;
