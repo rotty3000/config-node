@@ -58,6 +58,19 @@ function computeIfAbsent(cache: Map<string, any>, key: string, fn: () => any): a
   return value;
 }
 
+function readJSONFile(path: string): string {
+  if (fs.existsSync(path)) {
+    const contents = fs.readFileSync(path, 'utf8');
+    try {
+      return JSON.parse(contents);
+    }
+    catch (error) {
+      console.error('contents', contents, error);
+    }
+  }
+  return undefined;
+}
+
 /**
  * A utility function to enable verbose output from this library, convenient for debugging.
  *
@@ -83,4 +96,4 @@ function unquote(it: any) {
   return it;
 }
 
-export {protectedKeys, computeIfAbsent, setVerbose, verbose, unquote, getProjectRoot};
+export {computeIfAbsent, getProjectRoot, protectedKeys, readJSONFile, setVerbose, verbose, unquote};

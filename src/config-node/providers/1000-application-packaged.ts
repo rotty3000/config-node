@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {ConfigProvider} from "../types";
-import {computeIfAbsent, getProjectRoot, unquote} from "../util";
+import {computeIfAbsent, getProjectRoot, readJSONFile, unquote} from "../util";
 
 export const applicationPackaged: ConfigProvider = {
   description: "From application property json files packaged with the app",
@@ -17,7 +17,7 @@ export const applicationPackaged: ConfigProvider = {
     if (mainPath) {
       const configPath = path.join(mainPath, 'application.json');
       if (fs.existsSync(configPath)) {
-        const json = computeIfAbsent(providerCache, configPath, () => JSON.parse(fs.readFileSync(configPath, 'utf8')));
+        const json = computeIfAbsent(providerCache, configPath, () => readJSONFile(configPath));
         if (json) {
           return unquote(json[key]);
         }

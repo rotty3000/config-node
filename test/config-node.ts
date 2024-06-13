@@ -117,7 +117,8 @@ describe('lookupConfig', function () {
 
   it('should return value from application profile json in ${CWD}/config/application-{profile}.json', function () {
     defaultConfig('config.node.profiles.active', ['test']);
-    sinon.stub(fs, 'readFileSync').withArgs("/cwd/config/application-test.json", 'utf8').returns('{"application.config.key": "application config value"}');
+    sinon.stub(fs, 'existsSync').withArgs('/cwd/config/application-test.json').returns(true);
+    sinon.stub(fs, 'readFileSync').withArgs('/cwd/config/application-test.json', 'utf8').returns('{"application.config.key": "application config value"}');
 
     assert.deepEqual(
       lookupConfig('application.config.key'),
@@ -127,7 +128,8 @@ describe('lookupConfig', function () {
 
   it('should return value from application profile json in ${CWD}/application-{profile}.json', function () {
     defaultConfig('config.node.profiles.active', ['other']);
-    sinon.stub(fs, 'readFileSync').withArgs("/cwd/application-other.json", 'utf8').returns('{"application.config.key.other": "application config value other"}');
+    sinon.stub(fs, 'existsSync').withArgs('/cwd/application-other.json').returns(true);
+    sinon.stub(fs, 'readFileSync').withArgs('/cwd/application-other.json', 'utf8').returns('{"application.config.key.other": "application config value other"}');
 
     assert.deepEqual(
       lookupConfig('application.config.key.other'),

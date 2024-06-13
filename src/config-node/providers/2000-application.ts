@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {ConfigProvider} from "../types";
-import {computeIfAbsent, unquote} from "../util";
+import {computeIfAbsent, readJSONFile, unquote} from "../util";
 
 export const application: ConfigProvider = {
   description: "From application property json files in ${CWD}",
@@ -10,7 +10,7 @@ export const application: ConfigProvider = {
     const cwd = computeIfAbsent(commonCache, 'cwd', () => process.cwd());
     const configPath = path.join(cwd, 'application.json');
     if (fs.existsSync(configPath)) {
-      const json = computeIfAbsent(providerCache, configPath, () => JSON.parse(fs.readFileSync(configPath, 'utf8')));
+      const json = computeIfAbsent(providerCache, configPath, () => readJSONFile(configPath));
       if (json) {
         return unquote(json[key]);
       }
