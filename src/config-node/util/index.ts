@@ -47,7 +47,7 @@ function computeIfAbsent(cache: Map<string, any>, key: string, fn: () => any): a
     try {
       value = fn();
     } catch (e) {
-      verbose && console.error(e);
+      verbose && console.error('[config-node]', e);
     }
 
     if (value) {
@@ -65,7 +65,7 @@ function readJSONFile(path: string): string {
       return JSON.parse(contents);
     }
     catch (error) {
-      console.error('contents', contents, error);
+      console.error('[config-node]', 'contents', contents, error);
     }
   }
   return undefined;

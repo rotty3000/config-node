@@ -120,7 +120,7 @@ function lookupConfig(key: string): string | string[] | undefined {
 
       if (value) {
         verbose && console.debug(
-          `Provider [${holder.provider.key}] returned${valueFromCache ? ' (from cache)' : ''}:\n\t`,
+          '[config-node]', `Provider [${holder.provider.key}] returned${valueFromCache ? ' (from cache)' : ''}:\n\t`,
           key, '=', value);
 
         return value;
@@ -130,6 +130,8 @@ function lookupConfig(key: string): string | string[] | undefined {
       stack.pop();
     }
   }
+
+  verbose && console.debug('[config-node]', `No Providers returned a value for:\n\t`, key);
 }
 
 function _compareProviders(a: ConfigProviderHolder, b: ConfigProviderHolder) {
@@ -146,7 +148,7 @@ function _interpolatePlaceholders(v: string): any {
   let match = regex.exec(v);
 
   while (match) {
-    verbose && console.debug('Interpolating:', v, 'matched:', match);
+    // verbose && console.debug('[config-node]', 'Interpolating:', v, 'matched:', match);
 
     const key = match[0].slice(2, -1);
     const lookedUpValue = lookupConfig(key) as string;
