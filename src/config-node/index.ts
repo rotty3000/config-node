@@ -180,4 +180,6 @@ addProvider(
   programmatic
 );
 
+setVerbose(lookupConfig('config.node.config.verbose') === 'true');
+
 export {addProvider, clearCache, computeIfAbsent, ConfigProvider, defaultConfig, lookupConfig, setVerbose};

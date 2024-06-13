@@ -99,3 +99,7 @@ const customProvider: ConfigProvider = {
 
 addProvider(customProvider);
 ```
+
+## Debugging and Verbosity
+
+There is an internal property `config.node.config.verbose` which allows external operators to set the verbosity level of the library. When the value is set to `'true'` the library will emit additional information about it's processing activities.
