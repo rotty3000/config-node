@@ -1,10 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import {ConfigProvider} from "../types";
-import {computeIfAbsent, readJSONFile, unquote} from "../util";
+import {ConfigProvider} from '../types';
+import {computeIfAbsent, readJSONFile, unquote} from '../util';
 
 export const applicationConfig: ConfigProvider = {
-  description: "From application property json files in ${CWD}/config",
+  key: '${CWD}/config/application.json',
+  description: 'From application property json files in ${CWD}/config',
   priority: 3000,
   get: (key, providerCache, commonCache) => {
     const cwd = computeIfAbsent(commonCache, 'cwd', () => process.cwd());

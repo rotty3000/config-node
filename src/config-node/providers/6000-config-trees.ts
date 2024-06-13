@@ -1,11 +1,12 @@
 import fs from 'node:fs';
-import path from "path";
-import {lookupConfig} from "..";
-import {ConfigProvider} from "../types";
-import {computeIfAbsent, protectedKeys, unquote} from "../util";
+import path from 'path';
+import {lookupConfig} from '../../config-node';
+import {ConfigProvider} from '../types';
+import {computeIfAbsent, protectedKeys, unquote} from '../util';
 
 export const configTrees: ConfigProvider = {
-  description: "From config tree directories (a.k.a. Volume mounted ConfigMaps/Secrets)",
+  key: 'config-trees',
+  description: 'From config tree directories (a.k.a. Volume mounted ConfigMaps/Secrets)',
   priority: 6000,
   get: (key, providerCache) => {
     if (protectedKeys.includes(key)) {

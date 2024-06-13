@@ -119,7 +119,9 @@ function lookupConfig(key: string): string | string[] | undefined {
       }
 
       if (value) {
-        verbose && console.debug(`Provider [${holder.provider.description}] returned ${valueFromCache ? '(from cache)' : ''}:`, value);
+        verbose && console.debug(
+          `Provider [${holder.provider.key}] returned${valueFromCache ? ' (from cache)' : ''}:\n\t`,
+          key, '=', value);
 
         return value;
       }

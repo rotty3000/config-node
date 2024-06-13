@@ -1,10 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import {ConfigProvider} from "../types";
-import {computeIfAbsent, getProjectRoot, readJSONFile, unquote} from "../util";
+import {ConfigProvider} from '../types';
+import {computeIfAbsent, getProjectRoot, readJSONFile, unquote} from '../util';
 
 export const applicationPackaged: ConfigProvider = {
-  description: "From application property json files packaged with the app",
+  key: 'application.json',
+  description: 'From application property json files packaged with the app',
   priority: 1000,
   get: (key, providerCache, commonCache) => {
     const mainPath = computeIfAbsent(commonCache, 'require.main.path', () => {

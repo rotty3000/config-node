@@ -1,8 +1,9 @@
-import {ConfigProvider} from "../types";
-import {computeIfAbsent, unquote} from "../util";
+import {ConfigProvider} from '../types';
+import {computeIfAbsent, unquote} from '../util';
 
 export const individualEnvVars: ConfigProvider = {
-  description: "From individual environment variables (following name mangling rules)",
+  key: 'environment-variables',
+  description: 'From individual environment variables (following name mangling rules)',
   priority: 7000,
   get: (key, providerCache) => computeIfAbsent(providerCache, `process.env:${key}`, () => {
     let modifiedKey = key.replace(/\./gi, '_');

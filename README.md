@@ -81,7 +81,8 @@ Custom providers can be added as middle ware to without affecting other parts of
 import {addProvider, computeIfAbsent, ConfigProvider} from '@rotty3000/config-node';
 
 const customProvider: ConfigProvider = {
-  description: "From a database, key value store or secrets vault",
+  key: 'remote-store',
+  description: 'From a database, key value store or secrets vault',
   priority: 100,
   get: (key, providerCache, commonCache) => {
     // If the work is hard, put the value in providerCache for better performance over repeat get operations.

@@ -3,9 +3,15 @@
  */
 export interface ConfigProvider {
   /**
+   * The key of the provider. Used to uniquely identify the provider.
+   *
+   * @type {string}
+   */
+  readonly key: string,
+  /**
    * A description of the provider. Used only when verbose mode is enabled.
    *
-   * @type {number}
+   * @type {string}
    */
   readonly description?: string,
   /**

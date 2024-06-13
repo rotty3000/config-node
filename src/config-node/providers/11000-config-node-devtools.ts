@@ -5,7 +5,8 @@ import {ConfigProvider} from '../types';
 import {computeIfAbsent, readJSONFile, unquote} from '../util';
 
 export const configNodeDevtools: ConfigProvider = {
-  description: "From ~/.config-node-devtools.json",
+  key: '~/.config-node-devtools.json',
+  description: 'From ~/.config-node-devtools.json',
   priority: 11000,
   get: (key, providerCache, commonCache) => computeIfAbsent(providerCache, key, () => {
     const homedir = computeIfAbsent(commonCache, 'homedir', () => os.homedir());

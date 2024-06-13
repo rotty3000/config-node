@@ -1,11 +1,11 @@
-import fs from 'node:fs';
 import path from 'node:path';
-import {lookupConfig} from "..";
-import {ConfigProvider} from "../types";
-import {computeIfAbsent, protectedKeys, readJSONFile, unquote} from "../util";
+import {lookupConfig} from '../../config-node';
+import {ConfigProvider} from '../types';
+import {computeIfAbsent, protectedKeys, readJSONFile, unquote} from '../util';
 
 export const applicationProfileConfig: ConfigProvider = {
-  description: "From application profile property json files in ${CWD}/config",
+  key: '${CWD}/config/application-<profile>.json',
+  description: 'From application profile property json files in ${CWD}/config',
   priority: 5000,
   get: (key, providerCache, commonCache) => {
     if (protectedKeys.includes(key)) {

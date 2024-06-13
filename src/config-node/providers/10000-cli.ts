@@ -1,8 +1,9 @@
-import {ConfigProvider} from "../types";
-import {computeIfAbsent, unquote} from "../util";
+import {ConfigProvider} from '../types';
+import {computeIfAbsent, unquote} from '../util';
 
 export const cli: ConfigProvider = {
-  description: "From command line arguments (--key=value)",
+  key: 'command-line-arguments',
+  description: 'From command line arguments (--key=value)',
   priority: 1000,
   get: (key, providerCache) => computeIfAbsent(providerCache, `process.args.${key}`, () => {
     const prefix = `--${key}=`

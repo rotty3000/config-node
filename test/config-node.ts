@@ -262,6 +262,7 @@ describe('lookupConfig', function () {
     setVerbose(true);
 
     const customProvider: ConfigProvider = {
+      key: 'database',
       description: "From a database, vault or whatever",
       priority: 100,
       get: (key, providerCache) => computeIfAbsent(
