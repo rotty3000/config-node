@@ -120,7 +120,7 @@ function lookupConfig(key: string): string | string[] | undefined {
 
       if (value) {
         verbose && console.debug(
-          '[config-node]', `Provider [${holder.provider.key}] returned${valueFromCache ? ' (from cache)' : ''}:\n\t`,
+          '[config-node]', `Provider [${holder.provider.key}] returned${valueFromCache ? ' (from cache)' : ''}: `,
           key, '=', value);
 
         return value;
@@ -131,7 +131,7 @@ function lookupConfig(key: string): string | string[] | undefined {
     }
   }
 
-  verbose && console.debug('[config-node]', `No Providers returned a value for:\n\t`, key);
+  verbose && console.debug('[config-node]', `No Providers returned a value for:`, key);
 }
 
 function _compareProviders(a: ConfigProviderHolder, b: ConfigProviderHolder) {
