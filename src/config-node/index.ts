@@ -80,29 +80,45 @@ function lookupConfig(key: string): string | string[] | undefined {
     stack.push(pair);
 
     try {
-      value = holder.provider.get(key, holder.cache, commonCache);
+      let valueFromCache = false;
 
-      if (value) {
-        if (Array.isArray(value)) {
-          if (value.length > 0 && typeof value[0] === 'string') {
-            value = value as string[];
+      if (!holder.cache.has(key)) {
+        value = holder.provider.get(key, holder.cache, commonCache);
+
+        if (value) {
+          if (Array.isArray(value)) {
+            if (value.length > 0 && typeof value[0] === 'string') {
+              value = value as string[];
+            }
+            else {
+              value = [] as string[];
+            }
+
+            value = (value as string[]).map(v => _interpolatePlaceholders(v));
+          }
+          else if (typeof value !== 'string') {
+            value = JSON.stringify(value);
+
+            value = _interpolatePlaceholders(value);
           }
           else {
-            value = [] as string[];
+            value = _interpolatePlaceholders(value);
           }
 
-          value = (value as string[]).map(v => _interpolatePlaceholders(v));
-        }
-        else if (typeof value !== 'string') {
-          value = JSON.stringify(value);
-
-          value = _interpolatePlaceholders(value);
-        }
-        else {
-          value = _interpolatePlaceholders(value);
+          holder.cache.set(key, value);
         }
 
-        verbose && console.debug(`Provider [${holder.provider.description}] returned:`, value);
+        // map undefined value so we don't process it over and over again
+
+        holder.cache.set(key, value);
+      }
+      else {
+        value = holder.cache.get(key);
+        valueFromCache = true
+      }
+
+      if (value) {
+        verbose && console.debug(`Provider [${holder.provider.description}] returned ${valueFromCache ? '(from cache)' : ''}:`, value);
 
         return value;
       }
