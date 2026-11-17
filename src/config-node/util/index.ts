@@ -5,8 +5,11 @@ let verbose: boolean = false;
 
 const protectedKeys = [
   'config.node.config.trees',
-  'config.node.profiles.active'
+  'config.node.profiles.active',
+  'config.node.config.verbose'
 ];
+
+const sensitiveKeyPattern = /(secret|password|passwd|token|credential|api[-_.]?key|private[-_.]?key)/i;
 
 function findProjectRoot(currentPath = process.cwd()) {
   const hasPackageJson = fs.existsSync(path.join(currentPath, 'package.json'));
@@ -15,7 +18,8 @@ function findProjectRoot(currentPath = process.cwd()) {
     return currentPath;
   }
 
-  if (currentPath === path.resolve('/')) {
+  // a path is its own parent only at the filesystem root, which keeps this terminating on Windows too
+  if (path.dirname(currentPath) === currentPath) {
     return null;
   }
 
@@ -58,14 +62,87 @@ function computeIfAbsent(cache: Map<string, any>, key: string, fn: () => any): a
   return value;
 }
 
-function readJSONFile(path: string): string {
-  if (fs.existsSync(path)) {
-    const contents = fs.readFileSync(path, 'utf8');
+/**
+ * A lookup key is turned into a file system path by the config-tree and profile providers, so it has to be
+ * treated as a path segment rather than as free text: anything that could escape the directory it is joined
+ * to (`..`, separators, a leading dot) is rejected.
+ */
+function isSafePathSegment(value: string): boolean {
+  return typeof value === 'string' &&
+    value.length > 0 &&
+    !value.includes('/') &&
+    !value.includes('\\') &&
+    !value.includes('\0') &&
+    !value.includes('..') &&
+    !value.startsWith('.');
+}
+
+/**
+ * Resolve `name` against `root`, refusing anything that is unsafe as a path segment or that resolves (after
+ * following symlinks) to a location outside of `root`. Volume mounted ConfigMaps/Secrets are built out of
+ * symlinks into a `..data` directory inside the tree, so containment is checked on the resolved path rather
+ * than by refusing links outright.
+ */
+function resolveContainedFile(root: string, name: string): string | undefined {
+  if (!root || !isSafePathSegment(name)) {
+    return undefined;
+  }
+
+  const candidate = path.join(root, name);
+
+  if (!fs.existsSync(candidate)) {
+    return undefined;
+  }
+
+  try {
+    const realRoot = fs.realpathSync(root);
+    const realCandidate = fs.realpathSync(candidate);
+
+    if (realCandidate !== realRoot && !realCandidate.startsWith(realRoot + path.sep)) {
+      return undefined;
+    }
+
+    return realCandidate;
+  }
+  catch (e) {
+    // the candidate exists but could not be resolved (a mocked fs, or a race with a deleted entry): the key
+    // itself has already been validated as a single path segment, and the read that follows will fail on its
+    // own if the path is really gone
+    return candidate;
+  }
+}
+
+/**
+ * Strip the trailing newline that volume mounted ConfigMap/Secret files always carry.
+ */
+function trimFileValue(value: any): any {
+  return typeof value === 'string' ? value.replace(/[\r\n]+$/, '') : value;
+}
+
+/**
+ * The value of a sensitive key must never reach a log line, not even in verbose mode.
+ */
+function redactValue(key: string, value: any): any {
+  return sensitiveKeyPattern.test(key) ? '[redacted]' : value;
+}
+
+/**
+ * Read a key from a parsed JSON object without falling through to the prototype chain, so that keys like
+ * `__proto__` or `constructor` resolve to nothing instead of returning an object that no file ever declared.
+ */
+function readKey(json: Record<string, any>, key: string): any {
+  return json && Object.prototype.hasOwnProperty.call(json, key) ? json[key] : undefined;
+}
+
+function readJSONFile(filePath: string): Record<string, any> | undefined {
+  if (fs.existsSync(filePath)) {
+    const contents = fs.readFileSync(filePath, 'utf8');
     try {
       return JSON.parse(contents);
     }
     catch (error) {
-      console.error('[config-node]', 'contents', contents, error);
+      // never log the contents: a truncated or hand-edited config file is exactly where secrets live
+      console.error('[config-node]', 'could not parse', filePath, ':', (error as Error).message);
     }
   }
   return undefined;
@@ -81,6 +158,12 @@ function setVerbose(b: boolean) {
 }
 
 function unquote(it: any) {
+  if (typeof it === "boolean" || typeof it === "number") {
+    // a JSON file is allowed to express false/0; providers use a falsy return for "no value", so a legitimate
+    // scalar has to travel as a string
+    return String(it);
+  }
+
   if (typeof it === "string") {
     if (it.startsWith('"') && it.endsWith('"')) {
       return it.slice(1, -1);
@@ -96,4 +179,7 @@ function unquote(it: any) {
   return it;
 }
 
-export {computeIfAbsent, getProjectRoot, protectedKeys, readJSONFile, setVerbose, verbose, unquote};
+export {
+  computeIfAbsent, findProjectRoot, getProjectRoot, isSafePathSegment, protectedKeys, readJSONFile, readKey,
+  redactValue, resolveContainedFile, setVerbose, trimFileValue, unquote, verbose
+};

@@ -279,4 +279,156 @@ describe('lookupConfig', function () {
       'custom value'
     );
   });
+
+  it('should prefer a command line argument over a JSON file (CLI is the second highest source)', function () {
+    sinon.stub(fs, 'existsSync').withArgs("/cwd/application.json").returns(true);
+    sinon.stub(fs, 'readFileSync').withArgs("/cwd/application.json", 'utf8').returns('{"precedence.key": "from-file"}');
+    process.argv.push('--precedence.key=from-cli');
+
+    assert.equal(
+      lookupConfig('precedence.key'),
+      'from-cli'
+    );
+  });
+
+  it('should prefer APPLICATION_JSON over an individual environment variable', function () {
+    process.env.APPLICATION_JSON = '{"env.order.key": "from APPLICATION_JSON"}';
+    process.env.ENV_ORDER_KEY = 'from env var';
+
+    try {
+      assert.equal(
+        lookupConfig('env.order.key'),
+        'from APPLICATION_JSON'
+      );
+    }
+    finally {
+      delete process.env.ENV_ORDER_KEY;
+    }
+  });
+
+  it('should stop interpolating and leave the placeholder when a value references itself', function () {
+    process.env.SELF_REFERENCING = '${SELF_REFERENCING}';
+
+    try {
+      assert.equal(
+        lookupConfig('SELF_REFERENCING'),
+        '${SELF_REFERENCING}'
+      );
+    }
+    finally {
+      delete process.env.SELF_REFERENCING;
+    }
+  });
+
+  it('should not interpret $ replacement patterns in an interpolated value', function () {
+    process.env.REPLACEMENT_PATTERN = '$&';
+
+    try {
+      defaultConfig('a.replacement.key', 'before-${REPLACEMENT_PATTERN}-after');
+
+      assert.equal(
+        lookupConfig('a.replacement.key'),
+        'before-$&-after'
+      );
+    }
+    finally {
+      delete process.env.REPLACEMENT_PATTERN;
+    }
+  });
+
+  it('should keep a JSON array of non strings instead of emptying it', function () {
+    sinon.stub(fs, 'existsSync').withArgs("/cwd/application.json").returns(true);
+    sinon.stub(fs, 'readFileSync').withArgs("/cwd/application.json", 'utf8').returns('{"numbers": [8080, 8081]}');
+
+    assert.equal(
+      lookupConfig('numbers'),
+      '[8080,8081]'
+    );
+  });
+
+  it('should not let an empty array stop the search at a lower precedence source', function () {
+    sinon.stub(fs, 'existsSync').withArgs("/cwd/application.json").returns(true);
+    sinon.stub(fs, 'readFileSync').withArgs("/cwd/application.json", 'utf8').returns('{"empty.list": []}');
+    process.env.EMPTY_LIST = 'from env var';
+
+    try {
+      assert.equal(
+        lookupConfig('empty.list'),
+        'from env var'
+      );
+    }
+    finally {
+      delete process.env.EMPTY_LIST;
+    }
+  });
+
+  it('should honour a default set after the key has already been looked up', function () {
+    assert.isUndefined(lookupConfig('late.default.key'));
+
+    defaultConfig('late.default.key', 'late value');
+
+    assert.equal(
+      lookupConfig('late.default.key'),
+      'late value'
+    );
+  });
+
+  it('should not read a config tree entry outside of the configured tree', function () {
+    defaultConfig('config.node.config.trees', ['/configtree']);
+    sinon.stub(fs, 'existsSync').withArgs("/configtree/../../etc/passwd").returns(true);
+    sinon.stub(fs, 'readFileSync').withArgs("/configtree/../../etc/passwd", 'utf8').returns('root:x:0:0');
+
+    assert.isUndefined(
+      lookupConfig('../../etc/passwd')
+    );
+  });
+
+  it('should trim the trailing newline of a config tree value', function () {
+    defaultConfig('config.node.config.trees', ['/configtree']);
+    sinon.stub(fs, 'existsSync').withArgs("/configtree/trimmed.key").returns(true);
+    sinon.stub(fs, 'readFileSync').withArgs("/configtree/trimmed.key", 'utf8').returns('trimmed value\n');
+
+    assert.equal(
+      lookupConfig('trimmed.key'),
+      'trimmed value'
+    );
+  });
+
+  it('should not resolve inherited object properties as configuration', function () {
+    assert.isUndefined(lookupConfig('__proto__'));
+    assert.isUndefined(lookupConfig('constructor'));
+  });
+
+  it('should return an explicit false or zero from a JSON file instead of skipping it', function () {
+    sinon.stub(fs, 'existsSync').withArgs("/cwd/application.json").returns(true);
+    sinon.stub(fs, 'readFileSync').withArgs("/cwd/application.json", 'utf8')
+      .returns('{"a.flag": false, "a.retries": 0, "a.name": ""}');
+    process.env.ENV_A_FLAG = 'env';
+    process.env.ENV_A_RETRIES = 'env';
+
+    try {
+      // the file is the higher precedence source, so its falsy values have to win over the env vars below it
+      assert.equal(lookupConfig('a.flag'), 'false');
+      assert.equal(lookupConfig('a.retries'), '0');
+    }
+    finally {
+      delete process.env.ENV_A_FLAG;
+      delete process.env.ENV_A_RETRIES;
+    }
+  });
+
+  it('should not read a profile file outside of the working directory', function () {
+    process.env.CONFIG_NODE_PROFILES_ACTIVE = '../../evil';
+    sinon.stub(fs, 'existsSync').withArgs("/evil.json").returns(true);
+    sinon.stub(fs, 'readFileSync').withArgs("/evil.json", 'utf8').returns('{"escaped.key": "escaped"}');
+
+    try {
+      assert.isUndefined(
+        lookupConfig('escaped.key')
+      );
+    }
+    finally {
+      delete process.env.CONFIG_NODE_PROFILES_ACTIVE;
+    }
+  });
 });

@@ -1,5 +1,5 @@
 import {ConfigProvider} from '../types';
-import {computeIfAbsent, unquote} from '../util';
+import {computeIfAbsent, readKey, unquote} from '../util';
 
 export const cliApplicationJson: ConfigProvider = {
   key: 'inlined-command-line-argument',
@@ -10,7 +10,7 @@ export const cliApplicationJson: ConfigProvider = {
     for (var arg of process.argv) {
       if (arg.startsWith(prefix)) {
         const value = JSON.parse(arg.substring(prefix.length));
-        return unquote(value[key]);
+        return unquote(readKey(value, key));
       }
     }
     return undefined;

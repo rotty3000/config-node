@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {ConfigProvider} from '../types';
-import {computeIfAbsent, readJSONFile, unquote} from '../util';
+import {computeIfAbsent, readJSONFile, readKey, unquote} from '../util';
 
 export const application: ConfigProvider = {
   key: '${CWD}/application.json',
@@ -13,7 +13,7 @@ export const application: ConfigProvider = {
     if (fs.existsSync(configPath)) {
       const json = computeIfAbsent(providerCache, configPath, () => readJSONFile(configPath));
       if (json) {
-        return unquote(json[key]);
+        return unquote(readKey(json, key));
       }
     }
   },

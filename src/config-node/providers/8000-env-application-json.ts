@@ -1,5 +1,5 @@
 import {ConfigProvider} from '../types';
-import {computeIfAbsent, unquote} from '../util';
+import {computeIfAbsent, readKey, unquote} from '../util';
 
 export const envApplicationJson: ConfigProvider = {
   key: 'inlined-environment-variable',
@@ -10,7 +10,7 @@ export const envApplicationJson: ConfigProvider = {
     if (value && value.length > 1) {
       const json = computeIfAbsent(providerCache, `process.env.APPLICATION_JSON`, () => JSON.parse(value));
       if (json) {
-        return unquote(json[key]);
+        return unquote(readKey(json, key));
       }
     }
   }),

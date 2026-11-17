@@ -24,8 +24,6 @@ export interface LXCConfig {
   readonly oauthApplication: (erc: string) => LXCOAuthApplication | undefined;
 }
 
-const oauthApplications = new Map<string, LXCOAuthApplication>();
-
 /**
  * Values reach this API in three shapes depending on where they came from: a comma delimited env var arrives
  * already split into a string[] by `unquote`, a multi-line value (the volume mounted ConfigMap/Secret form)
@@ -48,59 +46,57 @@ function toList(value: string | string[] | undefined): string[] {
   return values.map((entry) => entry.trim()).filter((entry) => entry.length > 0);
 }
 
+/**
+ * The single valued lxc settings (protocol, audience, URIs, …) arrive through the same sources as the list
+ * valued ones, so a comma delimited value must not leak an array into a scalar accessor.
+ */
+function first(value: string | string[] | undefined): string | undefined {
+  return toList(value)[0];
+}
+
 export const lxcConfig: LXCConfig = {
   dxpDomains: () => toList(lookupConfig('com.liferay.lxc.dxp.domains')),
   dxpMainDomain: () => {
-    let value = toList(lookupConfig('com.liferay.lxc.dxp.main.domain'))[0];
+    let value = first(lookupConfig('com.liferay.lxc.dxp.main.domain'));
 
     if (!value) {
-      value = toList(lookupConfig('com.liferay.lxc.dxp.mainDomain'))[0];
+      value = first(lookupConfig('com.liferay.lxc.dxp.mainDomain'));
     }
 
     return value;
   },
-  dxpProtocol: () => lookupConfig('com.liferay.lxc.dxp.server.protocol') as string | undefined,
+  dxpProtocol: () => first(lookupConfig('com.liferay.lxc.dxp.server.protocol')),
   oauthApplication: (erc: string) => {
-    let oauthApplication = oauthApplications.get(erc);
+    const ercs = toList(lookupConfig('liferay.oauth.application.external.reference.codes'));
 
-    if (oauthApplication) {
-      return oauthApplication;
+    if (!ercs.includes(erc)) {
+      return undefined;
     }
 
-    let ercs = lookupConfig('liferay.oauth.application.external.reference.codes');
+    let applicationType = OAuthApplicationProfile.USER_AGENT;
 
-    if (ercs) {
-      ercs = Array.isArray(ercs) ? ercs : [ercs];
+    if (lookupConfig(`${erc}.oauth2.headless.server.client.id`)) {
+      applicationType = OAuthApplicationProfile.HEADLESS_SERVER;
     }
 
-    if (ercs && ercs.includes(erc)) {
-      let applicationType = OAuthApplicationProfile.USER_AGENT;
+    const family = applicationType === OAuthApplicationProfile.HEADLESS_SERVER ? 'headless.server' : 'user.agent';
 
-      if (lookupConfig(`${erc}.oauth2.headless.server.client.id`)) {
-        applicationType = OAuthApplicationProfile.HEADLESS_SERVER;
-      }
+    // deliberately not memoized: the values live in the provider caches that clearCache() owns, and a module
+    // level map would keep serving the old application type after a flush
+    return {
+      applicationType,
+      audience: () => first(lookupConfig(`${erc}.oauth2.${family}.audience`)),
+      authorizationUri: () => first(lookupConfig(`${erc}.oauth2.authorization.uri`)),
+      clientId: () => first(lookupConfig(`${erc}.oauth2.${family}.client.id`)),
+      clientSecret: () => first(lookupConfig(`${erc}.oauth2.${family}.client.secret`)),
+      introspectionUri: () => first(lookupConfig(`${erc}.oauth2.introspection.uri`)),
+      jwksUri: () => first(lookupConfig(`${erc}.oauth2.jwks.uri`)),
+      scopes: () => {
+        const scopes = toList(lookupConfig(`${erc}.oauth2.${family}.scopes`));
 
-      oauthApplication = {
-        applicationType,
-        audience: () => (applicationType === OAuthApplicationProfile.HEADLESS_SERVER ?
-          lookupConfig(`${erc}.oauth2.headless.server.audience`) :
-          lookupConfig(`${erc}.oauth2.user.agent.audience`)) as string | undefined,
-        authorizationUri: () => lookupConfig(`${erc}.oauth2.authorization.uri`) as string | undefined,
-        clientId: () => (applicationType === OAuthApplicationProfile.HEADLESS_SERVER ?
-          lookupConfig(`${erc}.oauth2.headless.server.client.id`) :
-          lookupConfig(`${erc}.oauth2.user.agent.client.id`)) as string | undefined,
-        clientSecret: () => lookupConfig(`${erc}.oauth2.headless.server.client.secret`) as string | undefined,
-        introspectionUri: () => lookupConfig(`${erc}.oauth2.introspection.uri`) as string | undefined,
-        jwksUri: () => lookupConfig(`${erc}.oauth2.jwks.uri`) as string | undefined,
-        scopes: () => (applicationType === OAuthApplicationProfile.HEADLESS_SERVER ?
-          lookupConfig(`${erc}.oauth2.headless.server.scopes`) :
-          lookupConfig(`${erc}.oauth2.user.agent.scopes`)) as string[] | undefined,
-        tokenUri: () => lookupConfig(`${erc}.oauth2.token.uri`) as string | undefined,
-      };
-
-      oauthApplications.set(erc, oauthApplication);
-    }
-
-    return oauthApplication;
+        return scopes.length > 0 ? scopes : undefined;
+      },
+      tokenUri: () => first(lookupConfig(`${erc}.oauth2.token.uri`)),
+    };
   },
 };

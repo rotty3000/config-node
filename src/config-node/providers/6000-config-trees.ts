@@ -1,8 +1,7 @@
 import fs from 'node:fs';
-import path from 'path';
 import {lookupConfig} from '../../config-node';
 import {ConfigProvider} from '../types';
-import {computeIfAbsent, protectedKeys, unquote} from '../util';
+import {computeIfAbsent, protectedKeys, resolveContainedFile, trimFileValue, unquote} from '../util';
 
 export const configTrees: ConfigProvider = {
   key: 'config-trees',
@@ -18,10 +17,13 @@ export const configTrees: ConfigProvider = {
     }
     configtrees = Array.isArray(configtrees) ? configtrees : [configtrees];
     return computeIfAbsent(providerCache, `configtree:${key}`, () => {
-      for (var configtree of configtrees) {
-        const configtreeEntry = path.join(configtree, key);
-        if (fs.existsSync(configtreeEntry)) {
-          return unquote(fs.readFileSync(configtreeEntry, 'utf8'));
+      for (var configtree of configtrees as string[]) {
+        // the key becomes a file name below the tree, so it is resolved and containment is checked on the
+        // real (symlink free) path: neither a `..` key nor a link can read outside the configured tree
+        const configtreeEntry = resolveContainedFile(configtree, key);
+
+        if (configtreeEntry) {
+          return unquote(trimFileValue(fs.readFileSync(configtreeEntry, 'utf8')));
         }
       }
     });

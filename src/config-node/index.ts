@@ -11,7 +11,7 @@ import {applicationConfig} from './providers/3000-application-config';
 import {application} from './providers/2000-application';
 import {applicationPackaged} from './providers/1000-application-packaged';
 import {programmatic} from './providers/0000-programmatic';
-import {computeIfAbsent, setVerbose, verbose} from './util';
+import {computeIfAbsent, redactValue, setVerbose, verbose} from './util';
 
 class ConfigProviderHolder {
   readonly priority: number;
@@ -34,6 +34,12 @@ const configProviderHolders: ConfigProviderHolder[] = [];
 const commonCache = new Map<string, any>();
 const stack: KeyProviderPair[] = [];
 const regex = /\$\{[^\$]+?\}/;
+
+/**
+ * A value that keeps reproducing its own placeholder (or a pair of values that reference each other) would
+ * otherwise spin forever; stop after this many substitutions and leave the remainder literal.
+ */
+const MAX_INTERPOLATION_STEPS = 100;
 
 /**
  * Register one or more configuration providers.
@@ -60,7 +66,19 @@ function clearCache() {
  * @param value - the configuration value to store
  */
 function defaultConfig(key: string, value: any): void {
+  // a boolean or a number is a legitimate configuration value; providers answer with a falsy value when they
+  // have nothing, so hand the core a string the way a JSON file would
+  if (typeof value === 'boolean' || typeof value === 'number') {
+    value = String(value);
+  }
+
   commonCache.set(key, value);
+
+  // a lookup made before this call (including the one this library performs when it is imported) may have
+  // cached the absence of a value for the key; drop that entry so the default is not shadowed by a stale miss
+  const programmaticHolder = configProviderHolders.find(holder => holder.provider === programmatic);
+
+  programmaticHolder?.cache.delete(key);
 }
 
 /**
@@ -84,32 +102,7 @@ function lookupConfig(key: string): string | string[] | undefined {
       let valueFromCache = false;
 
       if (!holder.cache.has(key)) {
-        value = holder.provider.get(key, holder.cache, commonCache);
-
-        if (value) {
-          if (Array.isArray(value)) {
-            if (value.length > 0 && typeof value[0] === 'string') {
-              value = value as string[];
-            }
-            else {
-              value = [] as string[];
-            }
-
-            value = (value as string[]).map(v => _interpolatePlaceholders(v));
-          }
-          else if (typeof value !== 'string') {
-            value = JSON.stringify(value);
-
-            value = _interpolatePlaceholders(value);
-          }
-          else {
-            value = _interpolatePlaceholders(value);
-          }
-
-          holder.cache.set(key, value);
-        }
-
-        // map undefined value so we don't process it over and over again
+        value = _normalizeValue(holder.provider.get(key, holder.cache, commonCache));
 
         holder.cache.set(key, value);
       }
@@ -121,7 +114,7 @@ function lookupConfig(key: string): string | string[] | undefined {
       if (value) {
         verbose && console.debug(
           '[config-node]', `Provider [${holder.provider.key}] returned${valueFromCache ? ' (from cache)' : ''}: `,
-          key, '=', value);
+          key, '=', redactValue(key, value));
 
         return value;
       }
@@ -134,6 +127,47 @@ function lookupConfig(key: string): string | string[] | undefined {
   verbose && console.debug('[config-node]', `No Providers returned a value for:`, key);
 }
 
+/**
+ * Normalize whatever a provider returned into the `string | string[]` shape this API promises, interpolating
+ * any `${key}` placeholders on the way through.
+ */
+function _normalizeValue(value: any): any {
+  // a provider answers with a falsy value (undefined, or the `key === 'x' && 'value'` idiom) when it has
+  // nothing to contribute
+  if (!value) {
+    return undefined;
+  }
+
+  if (Array.isArray(value)) {
+    // an empty list is not an answer, let the lower precedence providers have a turn
+    if (value.length === 0) {
+      return undefined;
+    }
+
+    if (typeof value[0] === 'string') {
+      return (value as string[]).map(v => _interpolatePlaceholders(v));
+    }
+
+    // a list of objects or numbers is data the caller asked for; returning [] here would lose it
+    return _interpolatePlaceholders(_stringify(value));
+  }
+
+  if (typeof value === 'string') {
+    return _interpolatePlaceholders(value);
+  }
+
+  return _interpolatePlaceholders(_stringify(value));
+}
+
+function _stringify(value: any): any {
+  try {
+    return JSON.stringify(value);
+  }
+  catch (e) {
+    verbose && console.error('[config-node]', 'Could not serialize the value:', (e as Error).message);
+  }
+}
+
 function _compareProviders(a: ConfigProviderHolder, b: ConfigProviderHolder) {
   if (a.priority < b.priority) {
     return 1;
@@ -144,22 +178,39 @@ function _compareProviders(a: ConfigProviderHolder, b: ConfigProviderHolder) {
   return 0;
 }
 
-function _interpolatePlaceholders(v: string): any {
+function _interpolatePlaceholders(v: any): any {
+  if (typeof v !== 'string') {
+    return v;
+  }
+
   let match = regex.exec(v);
+  let steps = 0;
 
   while (match) {
-    // verbose && console.debug('[config-node]', 'Interpolating:', v, 'matched:', match);
+    if (++steps > MAX_INTERPOLATION_STEPS) {
+      verbose && console.warn('[config-node]', 'Stopped interpolating after', MAX_INTERPOLATION_STEPS, 'steps:', v);
+
+      break;
+    }
 
     const key = match[0].slice(2, -1);
     const lookedUpValue = lookupConfig(key) as string;
 
-    if (lookedUpValue) {
-      v = v.replace(match[0], lookedUpValue)
-      match = regex.exec(v);
+    if (!lookedUpValue) {
+      break;
     }
-    else {
-      match = undefined;
+
+    // a function replacement keeps `$&`, `$'` and `` $` `` in the resolved value literal instead of letting
+    // String.replace interpret them as replacement patterns
+    const next = v.replace(match[0], () => lookedUpValue);
+
+    // the value reproduced the placeholder exactly: making progress is impossible, leave it as written
+    if (next === v) {
+      break;
     }
+
+    v = next;
+    match = regex.exec(v);
   }
 
   return v;

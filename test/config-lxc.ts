@@ -1,5 +1,5 @@
 import {clearCache} from '../src/config-node';
-import {lxcConfig} from '../src/config-lxc';
+import {lxcConfig, OAuthApplicationProfile} from '../src/config-lxc';
 import {assert, expect} from 'chai';
 
 describe('lxcConfig', function () {
@@ -140,5 +140,83 @@ describe('lxcConfig', function () {
 
     assert.isUndefined(lxcConfig.dxpMainDomain());
     assert.isUndefined(lxcConfig.dxpProtocol());
+  });
+
+  it('should reduce a comma delimited "dxpProtocol()" to its first value', function () {
+    process.env.COM_LIFERAY_LXC_DXP_SERVER_PROTOCOL = 'https,http';
+
+    assert.equal(lxcConfig.dxpProtocol(), 'https');
+  });
+
+  it('should ignore whitespace around ERC list entries', function () {
+    process.env.LIFERAY_OAUTH_APPLICATION_EXTERNAL_REFERENCE_CODES = 'erc-one, erc-two';
+
+    assert.isDefined(lxcConfig.oauthApplication('erc-one'));
+    assert.isDefined(lxcConfig.oauthApplication('erc-two'));
+  });
+
+  it('should read the user agent client secret for a user agent application', function () {
+    process.env.LIFERAY_OAUTH_APPLICATION_EXTERNAL_REFERENCE_CODES = 'agentic';
+    process.env.AGENTIC_OAUTH2_USER_AGENT_CLIENT_SECRET = 'user-agent-secret';
+    process.env.AGENTIC_OAUTH2_HEADLESS_SERVER_CLIENT_SECRET = 'headless-server-secret';
+
+    try {
+      const application = lxcConfig.oauthApplication('agentic')!;
+
+      assert.equal(application.applicationType, OAuthApplicationProfile.USER_AGENT);
+      assert.equal(application.clientSecret(), 'user-agent-secret');
+    }
+    finally {
+      delete process.env.AGENTIC_OAUTH2_USER_AGENT_CLIENT_SECRET;
+      delete process.env.AGENTIC_OAUTH2_HEADLESS_SERVER_CLIENT_SECRET;
+    }
+  });
+
+  it('should read the headless server settings for a headless server application', function () {
+    process.env.LIFERAY_OAUTH_APPLICATION_EXTERNAL_REFERENCE_CODES = 'service';
+    process.env.SERVICE_OAUTH2_HEADLESS_SERVER_CLIENT_ID = 'headless-client-id';
+    process.env.SERVICE_OAUTH2_HEADLESS_SERVER_CLIENT_SECRET = 'headless-server-secret';
+    process.env.SERVICE_OAUTH2_USER_AGENT_CLIENT_SECRET = 'user-agent-secret';
+
+    try {
+      const application = lxcConfig.oauthApplication('service')!;
+
+      assert.equal(application.applicationType, OAuthApplicationProfile.HEADLESS_SERVER);
+      assert.equal(application.clientId(), 'headless-client-id');
+      assert.equal(application.clientSecret(), 'headless-server-secret');
+    }
+    finally {
+      delete process.env.SERVICE_OAUTH2_HEADLESS_SERVER_CLIENT_ID;
+      delete process.env.SERVICE_OAUTH2_HEADLESS_SERVER_CLIENT_SECRET;
+      delete process.env.SERVICE_OAUTH2_USER_AGENT_CLIENT_SECRET;
+    }
+  });
+
+  it('should always return application scopes as an array', function () {
+    process.env.LIFERAY_OAUTH_APPLICATION_EXTERNAL_REFERENCE_CODES = 'scoped';
+    process.env.SCOPED_OAUTH2_USER_AGENT_SCOPES = 'scope.one';
+
+    try {
+      assert.deepEqual(lxcConfig.oauthApplication('scoped')!.scopes(), ['scope.one']);
+    }
+    finally {
+      delete process.env.SCOPED_OAUTH2_USER_AGENT_SCOPES;
+    }
+  });
+
+  it('should not serve a stale application type after a cache flush', function () {
+    process.env.LIFERAY_OAUTH_APPLICATION_EXTERNAL_REFERENCE_CODES = 'flushed';
+
+    try {
+      assert.equal(lxcConfig.oauthApplication('flushed')!.applicationType, OAuthApplicationProfile.USER_AGENT);
+
+      process.env.FLUSHED_OAUTH2_HEADLESS_SERVER_CLIENT_ID = 'headless-client-id';
+      clearCache();
+
+      assert.equal(lxcConfig.oauthApplication('flushed')!.applicationType, OAuthApplicationProfile.HEADLESS_SERVER);
+    }
+    finally {
+      delete process.env.FLUSHED_OAUTH2_HEADLESS_SERVER_CLIENT_ID;
+    }
   });
 });

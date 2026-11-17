@@ -2,7 +2,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'node:path';
 import {ConfigProvider} from '../types';
-import {computeIfAbsent, readJSONFile, unquote} from '../util';
+import {computeIfAbsent, readJSONFile, readKey, unquote} from '../util';
 
 export const configNodeDevtools: ConfigProvider = {
   key: '~/.config-node-devtools.json',
@@ -14,7 +14,7 @@ export const configNodeDevtools: ConfigProvider = {
     if (fs.existsSync(filePath)) {
       const json = computeIfAbsent(providerCache, filePath, () => readJSONFile(filePath));
       if (json) {
-        return unquote(json[key]);
+        return unquote(readKey(json, key));
       }
     }
   }),
