@@ -144,7 +144,9 @@ function _normalizeValue(value: any): any {
       return undefined;
     }
 
-    if (typeof value[0] === 'string') {
+    // the whole list has to be strings for it to be a string[]: deciding on the first entry made the result
+    // depend on element order (`["one", 2]` came back as an array holding a number)
+    if (value.every((entry: any) => typeof entry === 'string')) {
       return (value as string[]).map(v => _interpolatePlaceholders(v));
     }
 

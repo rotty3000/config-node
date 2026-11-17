@@ -115,8 +115,8 @@ function resolveContainedFile(root: string, name: string): string | undefined {
 /**
  * Strip the trailing newline that volume mounted ConfigMap/Secret files always carry.
  */
-function trimFileValue(value: any): any {
-  return typeof value === 'string' ? value.replace(/[\r\n]+$/, '') : value;
+function trimFileValue(value: string): string {
+  return value.replace(/[\r\n]+$/, '');
 }
 
 /**

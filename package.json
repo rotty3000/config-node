@@ -9,7 +9,8 @@
     "check": "tsc -p tsconfig.json",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run build",
-    "test": "npm run check && ts-mocha test/*.ts"
+    "test": "npm run check && ts-mocha test/*.ts",
+    "coverage": "c8 --reporter=text --reporter=text-summary ts-mocha test/*.ts"
   },
   "author": "Raymond Augé",
   "license": "Apache-2.0",
@@ -18,6 +19,7 @@
     "@types/mocha": "^10.0.6",
     "@types/node": "^20.10.4",
     "@types/sinon": "^17.0.2",
+    "c8": "^12.0.0",
     "chai": "^4.3.10",
     "mocha": "^10.2.0",
     "sinon": "^17.0.1",

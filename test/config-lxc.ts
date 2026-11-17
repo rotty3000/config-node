@@ -204,6 +204,45 @@ describe('lxcConfig', function () {
     }
   });
 
+  it('should expose every user agent setting from the matching key family', function () {
+    process.env.LIFERAY_OAUTH_APPLICATION_EXTERNAL_REFERENCE_CODES = 'full';
+    const keys: Record<string, string> = {
+      'FULL_OAUTH2_USER_AGENT_AUDIENCE': 'the-audience',
+      'FULL_OAUTH2_USER_AGENT_CLIENT_ID': 'the-client-id',
+      'FULL_OAUTH2_USER_AGENT_CLIENT_SECRET': 'the-client-secret',
+      'FULL_OAUTH2_USER_AGENT_SCOPES': 'scope.one,scope.two',
+      'FULL_OAUTH2_AUTHORIZATION_URI': 'https://dxp/authorize',
+      'FULL_OAUTH2_INTROSPECTION_URI': 'https://dxp/introspect',
+      'FULL_OAUTH2_JWKS_URI': 'https://dxp/jwks',
+      'FULL_OAUTH2_TOKEN_URI': 'https://dxp/token',
+    };
+
+    Object.entries(keys).forEach(([name, value]) => process.env[name] = value);
+
+    try {
+      const application = lxcConfig.oauthApplication('full')!;
+
+      assert.equal(application.applicationType, OAuthApplicationProfile.USER_AGENT);
+      assert.equal(application.audience(), 'the-audience');
+      assert.equal(application.clientId(), 'the-client-id');
+      assert.equal(application.clientSecret(), 'the-client-secret');
+      assert.deepEqual(application.scopes(), ['scope.one', 'scope.two']);
+      assert.equal(application.authorizationUri(), 'https://dxp/authorize');
+      assert.equal(application.introspectionUri(), 'https://dxp/introspect');
+      assert.equal(application.jwksUri(), 'https://dxp/jwks');
+      assert.equal(application.tokenUri(), 'https://dxp/token');
+    }
+    finally {
+      Object.keys(keys).forEach((name) => delete process.env[name]);
+    }
+  });
+
+  it('should return undefined scopes when the application has none configured', function () {
+    process.env.LIFERAY_OAUTH_APPLICATION_EXTERNAL_REFERENCE_CODES = 'noscopes';
+
+    assert.isUndefined(lxcConfig.oauthApplication('noscopes')!.scopes());
+  });
+
   it('should not serve a stale application type after a cache flush', function () {
     process.env.LIFERAY_OAUTH_APPLICATION_EXTERNAL_REFERENCE_CODES = 'flushed';
 

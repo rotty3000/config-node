@@ -16,7 +16,12 @@ describe('lookupConfig', function () {
 
     application_json_env = process.env.APPLICATION_JSON;
     com_liferay_lxc_dxp_maindomain_env = process.env.COM_LIFERAY_LXC_DXP_MAINDOMAIN;
-    initial_argv = process.argv;
+    // copy it: tests push arguments, and restoring the same array by reference keeps those pushes
+    initial_argv = [...process.argv];
+
+    // the library looks up config.node.config.verbose when it is imported, which caches the real cwd and
+    // homedir; start every test from a clean cache so a test never sees that or a previous test's leftovers
+    clearCache();
   });
 
   afterEach(() => {
@@ -32,7 +37,7 @@ describe('lookupConfig', function () {
     else {
       process.env.COM_LIFERAY_LXC_DXP_MAINDOMAIN = com_liferay_lxc_dxp_maindomain_env;
     }
-    process.argv = initial_argv;
+    process.argv = [...initial_argv];
     sinon.restore();
     clearCache();
   });
@@ -347,8 +352,9 @@ describe('lookupConfig', function () {
   });
 
   it('should not let an empty array stop the search at a lower precedence source', function () {
-    sinon.stub(fs, 'existsSync').withArgs("/cwd/application.json").returns(true);
-    sinon.stub(fs, 'readFileSync').withArgs("/cwd/application.json", 'utf8').returns('{"empty.list": []}');
+    // APPLICATION_JSON outranks an individual environment variable, so the empty list really is what the
+    // search sees first
+    process.env.APPLICATION_JSON = '{"empty.list": []}';
     process.env.EMPTY_LIST = 'from env var';
 
     try {
@@ -471,4 +477,303 @@ describe('lookupConfig', function () {
       delete process.env.CONFIG_NODE_PROFILES_ACTIVE;
     }
   });
+
+  it('should prefer each source over every source below it', function () {
+    // highest first: the order the README documents
+    const order = [
+      'devtools', 'cli', 'cli-application-json', 'env-application-json', 'env', 'trees',
+      'profile-config', 'profile', 'application-config', 'application', 'packaged'
+    ];
+    const envName = (key: string) => key.replace(/\./gi, '_').replace(/-/gi, '').toUpperCase();
+    const jsonBlobs: Record<string, Record<string, string>> = {
+      '/homedir/.config-node-devtools.json': {},
+      '/cwd/config/application-test.json': {},
+      '/cwd/application-test.json': {},
+      '/cwd/config/application.json': {},
+      '/cwd/application.json': {},
+      '/mainPath/application.json': {}
+    };
+    const cliApplicationJson: Record<string, string> = {};
+    const envApplicationJson: Record<string, string> = {};
+    const treeValues: Record<string, string> = {};
+    const expected = new Map<string, string>();
+    const envKeys: string[] = [];
+
+    process.env.CONFIG_NODE_PROFILES_ACTIVE = 'test';
+
+    for (let i = 0; i < order.length - 1; i++) {
+      const key = `probe.${order[i]}`;
+
+      expected.set(key, order[i]);
+
+      for (let j = i; j < order.length; j++) {
+        const value = `from-${order[j]}`;
+
+        switch (order[j]) {
+          case 'devtools':
+            jsonBlobs['/homedir/.config-node-devtools.json'][key] = value;
+            break;
+          case 'cli':
+            process.argv.push(`--${key}=${value}`);
+            break;
+          case 'cli-application-json':
+            cliApplicationJson[key] = value;
+            break;
+          case 'env-application-json':
+            envApplicationJson[key] = value;
+            break;
+          case 'env':
+            process.env[envName(key)] = value;
+            envKeys.push(envName(key));
+            break;
+          case 'trees':
+            treeValues[`/tree/${key}`] = value;
+            break;
+          case 'profile-config':
+            jsonBlobs['/cwd/config/application-test.json'][key] = value;
+            break;
+          case 'profile':
+            jsonBlobs['/cwd/application-test.json'][key] = value;
+            break;
+          case 'application-config':
+            jsonBlobs['/cwd/config/application.json'][key] = value;
+            break;
+          case 'application':
+            jsonBlobs['/cwd/application.json'][key] = value;
+            break;
+          case 'packaged':
+            jsonBlobs['/mainPath/application.json'][key] = value;
+            break;
+        }
+      }
+    }
+
+    defaultConfig('config.node.config.trees', ['/tree']);
+    process.argv.push(`--application.json=${JSON.stringify(cliApplicationJson)}`);
+    process.env.APPLICATION_JSON = JSON.stringify(envApplicationJson);
+
+    const existsSync = sinon.stub(fs, 'existsSync');
+    const readFileSync = sinon.stub(fs, 'readFileSync');
+
+    Object.entries(jsonBlobs).forEach(([filePath, blob]) => {
+      existsSync.withArgs(filePath).returns(true);
+      readFileSync.withArgs(filePath, 'utf8').returns(JSON.stringify(blob));
+    });
+
+    Object.entries(treeValues).forEach(([treePath, value]) => {
+      existsSync.withArgs(treePath).returns(true);
+      readFileSync.withArgs(treePath, 'utf8').returns(value);
+    });
+
+    try {
+      for (const [key, source] of expected) {
+        assert.equal(
+          lookupConfig(key),
+          `from-${source}`,
+          `expected ${source} to answer for ${key}`
+        );
+      }
+    }
+    finally {
+      envKeys.forEach((envKey) => delete process.env[envKey]);
+      delete process.env.CONFIG_NODE_PROFILES_ACTIVE;
+    }
+  });
+
+  it('should not let a profile or a config tree redefine a protected key', function () {
+    defaultConfig('config.node.profiles.active', 'test');
+    defaultConfig('config.node.config.trees', ['/configtree']);
+    sinon.stub(fs, 'existsSync')
+      .withArgs("/cwd/application-test.json").returns(true)
+      .withArgs("/configtree/config.node.config.trees").returns(true);
+    sinon.stub(fs, 'readFileSync')
+      .withArgs("/cwd/application-test.json", 'utf8')
+      .returns('{"config.node.profiles.active": "hijacked", "config.node.config.verbose": "true"}')
+      .withArgs("/configtree/config.node.config.trees", 'utf8')
+      .returns('hijacked');
+
+    assert.equal(lookupConfig('config.node.profiles.active'), 'test');
+    assert.deepEqual(lookupConfig('config.node.config.trees'), ['/configtree']);
+    assert.isUndefined(lookupConfig('config.node.config.verbose'));
+  });
+
+  it('should store a boolean or a number default as a string', function () {
+    defaultConfig('a.boolean.default', false);
+    defaultConfig('a.number.default', 0);
+
+    assert.equal(lookupConfig('a.boolean.default'), 'false');
+    assert.equal(lookupConfig('a.number.default'), '0');
+  });
+
+  it('should return undefined rather than throwing for a value that cannot be serialized', function () {
+    const circular: any = {};
+    circular.self = circular;
+    defaultConfig('a.circular.value', circular);
+
+    assert.isUndefined(lookupConfig('a.circular.value'));
+  });
+
+  it('should stop after a bounded number of substitutions when a value keeps growing', function () {
+    process.env.GROWING = '${GROWING}x';
+    defaultConfig('growing.key', '${GROWING}');
+
+    try {
+      const value = lookupConfig('growing.key');
+
+      assert.isString(value);
+      assert.isTrue((value as string).length < 1000, 'interpolation should stop growing');
+    }
+    finally {
+      delete process.env.GROWING;
+    }
+  });
+
+  it('should leave an alias of a self referencing value literal', function () {
+    defaultConfig('self.ref', '${self.ref}');
+    defaultConfig('alias.ref', '${self.ref}');
+
+    assert.equal(lookupConfig('alias.ref'), '${self.ref}');
+  });
+
+  it('should report an unparseable JSON file by path without dumping its contents', function () {
+    sinon.stub(fs, 'existsSync').withArgs("/cwd/application.json").returns(true);
+    sinon.stub(fs, 'readFileSync').withArgs("/cwd/application.json", 'utf8')
+      .returns('{"dxp.oauth.client.secret": "S3CRET", broken');
+
+    const errors: string[] = [];
+    const originalError = console.error;
+    console.error = (...args: any[]) => errors.push(args.join(' '));
+
+    try {
+      assert.isUndefined(lookupConfig('dxp.oauth.client.secret'));
+    }
+    finally {
+      console.error = originalError;
+    }
+
+    assert.isTrue(errors.some((line) => line.includes('/cwd/application.json')), 'the path is reported');
+    assert.isFalse(errors.some((line) => line.includes('S3CRET')), 'the contents are not');
+  });
+
+  it('should strip one layer of matching quotes from a value', function () {
+    sinon.stub(fs, 'existsSync').withArgs("/cwd/application.json").returns(true);
+    sinon.stub(fs, 'readFileSync').withArgs("/cwd/application.json", 'utf8')
+      .returns('{"a.double.quoted": "\\"quoted\\"", "a.single.quoted": "\'single\'"}');
+
+    assert.equal(lookupConfig('a.double.quoted'), 'quoted');
+    assert.equal(lookupConfig('a.single.quoted'), 'single');
+  });
+
+  it('should redact a sensitive value in verbose output and log the provider description', function () {
+    sinon.stub(fs, 'existsSync').withArgs("/cwd/application.json").returns(true);
+    sinon.stub(fs, 'readFileSync').withArgs("/cwd/application.json", 'utf8')
+      .returns('{"a.client.secret": "S3CRET-VALUE", "a.plain.value": "plain-value"}');
+
+    const debug: string[] = [];
+    const originalDebug = console.debug;
+    console.debug = (...args: any[]) => debug.push(args.join(' '));
+    setVerbose(true);
+
+    try {
+      assert.equal(lookupConfig('a.client.secret'), 'S3CRET-VALUE');
+      assert.equal(lookupConfig('a.plain.value'), 'plain-value');
+    }
+    finally {
+      setVerbose(false);
+      console.debug = originalDebug;
+    }
+
+    const secretLine = debug.find((line) => line.includes('a.client.secret'));
+    const plainLine = debug.find((line) => line.includes('a.plain.value'));
+
+    assert.isTrue(secretLine !== undefined && secretLine.includes('[redacted]'), 'the secret is redacted');
+    assert.isFalse(debug.some((line) => line.includes('S3CRET-VALUE')), 'the secret never appears');
+    assert.isTrue(plainLine !== undefined && plainLine.includes('plain-value'), 'the plain value is logged');
+    assert.isTrue(plainLine !== undefined && /Provider \[[^\]]+: /.test(plainLine), 'the description is logged');
+  });
+
+  it('should swallow a provider that throws and keep the search going', function () {
+    const cache = new Map<string, any>();
+
+    assert.isUndefined(computeIfAbsent(cache, 'a.throwing.key', () => {
+      throw new Error('boom');
+    }));
+    assert.isFalse(cache.has('a.throwing.key'), 'a failed computation is not cached');
+  });
+
+  it('should survive a provider that throws inside computeIfAbsent and label a provider without a description', function () {
+    addProvider(
+      {
+        key: 'throwing-provider',
+        priority: 350,
+        get: (key, providerCache) => computeIfAbsent(providerCache, key, () => {
+          throw new Error('boom');
+        }),
+      },
+      {
+        key: 'plain-provider',
+        priority: 340,
+        get: (key) => key === 'a.plain.provider.value' ? 'plain-provider-value' : undefined,
+      }
+    );
+
+    const errors: string[] = [];
+    const debug: string[] = [];
+    const originalError = console.error;
+    const originalDebug = console.debug;
+    console.error = (...args: any[]) => errors.push(args.join(' '));
+    console.debug = (...args: any[]) => debug.push(args.join(' '));
+    setVerbose(true);
+
+    try {
+      defaultConfig('a.after.throwing', 'reached-the-next-provider');
+
+      assert.equal(lookupConfig('a.after.throwing'), 'reached-the-next-provider');
+      assert.equal(lookupConfig('a.plain.provider.value'), 'plain-provider-value');
+    }
+    finally {
+      setVerbose(false);
+      console.error = originalError;
+      console.debug = originalDebug;
+    }
+
+    assert.isTrue(errors.some((line) => line.includes('boom')), 'the thrown error is logged in verbose mode');
+    assert.isTrue(
+      debug.some((line) => line.includes('Provider [plain-provider]')),
+      'a provider without a description is labelled by its key'
+    );
+  });
+
+  it('should ask every provider at the same priority', function () {
+    addProvider({
+      key: 'tied-priority',
+      description: 'A provider that ties with the devtools file',
+      priority: 11000,
+      get: (key) => key === 'a.tied.value' ? 'from-the-tied-provider' : undefined,
+    });
+
+    assert.equal(lookupConfig('a.tied.value'), 'from-the-tied-provider');
+  });
+
+  it('should not cache a falsy value computed for a key', function () {
+    const cache = new Map<string, any>();
+    let calls = 0;
+    const absent = () => {
+      calls++;
+    };
+
+    assert.isUndefined(computeIfAbsent(cache, 'a.key', absent));
+    assert.isUndefined(computeIfAbsent(cache, 'a.key', absent));
+    assert.equal(calls, 2, 'a falsy answer is recomputed rather than cached');
+
+    const value = computeIfAbsent(cache, 'a.key', () => {
+      calls++;
+      return 'cached-value';
+    });
+
+    assert.equal(value, 'cached-value');
+    assert.equal(computeIfAbsent(cache, 'a.key', absent), 'cached-value', 'a truthy answer is cached');
+    assert.equal(calls, 3);
+  });
+
 });
