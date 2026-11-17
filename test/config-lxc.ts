@@ -68,6 +68,14 @@ describe('lxcConfig', function () {
     assert.isUndefined(lxcConfig.oauthApplication('baz'))
   });
 
+  it('should return undefined rather than throw when no ERCs are configured', function () {
+    delete process.env.LIFERAY_OAUTH_APPLICATION_EXTERNAL_REFERENCE_CODES;
+
+    // An ERC no other test resolves: results are cached per ERC.
+    assert.doesNotThrow(() => lxcConfig.oauthApplication('unlisted'));
+    assert.isUndefined(lxcConfig.oauthApplication('unlisted'));
+  });
+
   it('should return array from "dxpDomains()" when there is one expected value', function () {
     process.env.COM_LIFERAY_LXC_DXP_DOMAINS = 'foo';
 
