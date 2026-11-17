@@ -3,17 +3,33 @@ import {lxcConfig} from '../src/config-lxc';
 import {assert, expect} from 'chai';
 
 describe('lxcConfig', function () {
-  let com_liferay_lxc_dxp_maindomain_env;
-  let com_liferay_lxc_dxp_main_domain_env;
-  let liferay_oauth_application_external_reference_codes;
+  let com_liferay_lxc_dxp_domains_env: string | undefined;
+  let com_liferay_lxc_dxp_maindomain_env: string | undefined;
+  let com_liferay_lxc_dxp_main_domain_env: string | undefined;
+  let com_liferay_lxc_dxp_server_protocol_env: string | undefined;
+  let liferay_oauth_application_external_reference_codes: string | undefined;
 
   beforeEach(() => {
+    com_liferay_lxc_dxp_domains_env = process.env.COM_LIFERAY_LXC_DXP_DOMAINS;
     com_liferay_lxc_dxp_maindomain_env = process.env.COM_LIFERAY_LXC_DXP_MAINDOMAIN;
     com_liferay_lxc_dxp_main_domain_env = process.env.COM_LIFERAY_LXC_DXP_MAIN_DOMAIN;
+    com_liferay_lxc_dxp_server_protocol_env = process.env.COM_LIFERAY_LXC_DXP_SERVER_PROTOCOL;
     liferay_oauth_application_external_reference_codes = process.env.LIFERAY_OAUTH_APPLICATION_EXTERNAL_REFERENCE_CODES;
   });
 
   afterEach(() => {
+    if (!com_liferay_lxc_dxp_domains_env) {
+      delete process.env.COM_LIFERAY_LXC_DXP_DOMAINS;
+    }
+    else {
+      process.env.COM_LIFERAY_LXC_DXP_DOMAINS = com_liferay_lxc_dxp_domains_env;
+    }
+    if (!com_liferay_lxc_dxp_server_protocol_env) {
+      delete process.env.COM_LIFERAY_LXC_DXP_SERVER_PROTOCOL;
+    }
+    else {
+      process.env.COM_LIFERAY_LXC_DXP_SERVER_PROTOCOL = com_liferay_lxc_dxp_server_protocol_env;
+    }
     if (!com_liferay_lxc_dxp_maindomain_env) {
       delete process.env.COM_LIFERAY_LXC_DXP_MAINDOMAIN;
     }
@@ -46,6 +62,15 @@ describe('lxcConfig', function () {
 
   it('should return main domain from both mainDomain or main.domain is specified (main.domain)', function () {
     process.env.COM_LIFERAY_LXC_DXP_MAIN_DOMAIN = 'localhost:8080';
+
+    assert.equal(
+      lxcConfig.dxpMainDomain(),
+      'localhost:8080'
+    );
+  });
+
+  it('should take the first entry of a multi-line main domain', function () {
+    process.env.COM_LIFERAY_LXC_DXP_MAIN_DOMAIN = 'localhost:8080\nother.example.com';
 
     assert.equal(
       lxcConfig.dxpMainDomain(),
@@ -88,5 +113,32 @@ describe('lxcConfig', function () {
 
     let domains = lxcConfig.dxpDomains();
     expect(domains).to.include.members(['foo', 'bar']);
+  });
+
+  it('should return an empty array from "dxpDomains()" rather than throw when unset', function () {
+    delete process.env.COM_LIFERAY_LXC_DXP_DOMAINS;
+
+    assert.deepEqual(lxcConfig.dxpDomains(), []);
+  });
+
+  it('should handle a comma delimited "dxpDomains()" (as delivered by an env var)', function () {
+    process.env.COM_LIFERAY_LXC_DXP_DOMAINS = 'foo,bar';
+
+    assert.deepEqual(lxcConfig.dxpDomains(), ['foo', 'bar']);
+  });
+
+  it('should trim "dxpDomains()" entries and drop the empty ones', function () {
+    process.env.COM_LIFERAY_LXC_DXP_DOMAINS = ' foo \r\n\n bar \n';
+
+    assert.deepEqual(lxcConfig.dxpDomains(), ['foo', 'bar']);
+  });
+
+  it('should return undefined from "dxpMainDomain()" and "dxpProtocol()" when unset', function () {
+    delete process.env.COM_LIFERAY_LXC_DXP_MAINDOMAIN;
+    delete process.env.COM_LIFERAY_LXC_DXP_MAIN_DOMAIN;
+    delete process.env.COM_LIFERAY_LXC_DXP_SERVER_PROTOCOL;
+
+    assert.isUndefined(lxcConfig.dxpMainDomain());
+    assert.isUndefined(lxcConfig.dxpProtocol());
   });
 });
