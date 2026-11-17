@@ -49,7 +49,7 @@ export const lxcConfig: LXCConfig = {
       ercs = Array.isArray(ercs) ? ercs : [ercs];
     }
 
-    if (ercs.includes(erc)) {
+    if (ercs && ercs.includes(erc)) {
       let applicationType = OAuthApplicationProfile.USER_AGENT;
 
       if (lookupConfig(`${erc}.oauth2.headless.server.client.id`)) {
