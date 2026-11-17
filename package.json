@@ -5,11 +5,11 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "check": "tsc -p tsconfig.json",
     "clean": "rm -rf dist",
-    "prepublish": "npm run clean && tsc",
-    "build": "tsc",
-    "run": "npm run clean && npm run build && node dist/src/index.js",
-    "test": "npm run clean && npm run build && ts-mocha test/*.ts"
+    "prepublishOnly": "npm run clean && npm run build",
+    "test": "npm run check && ts-mocha test/*.ts"
   },
   "author": "Raymond Augé",
   "license": "Apache-2.0",
@@ -19,7 +19,6 @@
     "@types/node": "^20.10.4",
     "@types/sinon": "^17.0.2",
     "chai": "^4.3.10",
-    "copyfiles": "^2.4.1",
     "mocha": "^10.2.0",
     "sinon": "^17.0.1",
     "ts-mocha": "^10.0.0",

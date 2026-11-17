@@ -1,20 +1,14 @@
-import fs from 'node:fs';
 import path from 'node:path';
-import {ConfigProvider} from '../types';
-import {computeIfAbsent, readJSONFile, readKey, unquote} from '../util';
+import {computeIfAbsent} from '../util';
+import {jsonFileProvider} from './json-file';
 
-export const application: ConfigProvider = {
+export const application = jsonFileProvider({
   key: '${CWD}/application.json',
   description: 'From application property json files in ${CWD}',
   priority: 2000,
-  get: (key, providerCache, commonCache) => {
+  resolvePath: (commonCache) => {
     const cwd = computeIfAbsent(commonCache, 'cwd', () => process.cwd());
-    const configPath = path.join(cwd, 'application.json');
-    if (fs.existsSync(configPath)) {
-      const json = computeIfAbsent(providerCache, configPath, () => readJSONFile(configPath));
-      if (json) {
-        return unquote(readKey(json, key));
-      }
-    }
+
+    return path.join(cwd, 'application.json');
   },
-};
+});

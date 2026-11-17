@@ -5,14 +5,14 @@ import fs from 'node:fs';
 import os from 'os';
 
 describe('lookupConfig', function () {
-  let application_json_env;
-  let com_liferay_lxc_dxp_maindomain_env;
-  let initial_argv;
+  let application_json_env: string | undefined;
+  let com_liferay_lxc_dxp_maindomain_env: string | undefined;
+  let initial_argv: string[];
 
   beforeEach(() => {
     sinon.stub(process, 'cwd').returns('/cwd');
     sinon.stub(os, 'homedir').returns('/homedir');
-    sinon.stub(require.main, 'path').value('/mainPath');
+    sinon.stub(require.main!, 'path').value('/mainPath');
 
     application_json_env = process.env.APPLICATION_JSON;
     com_liferay_lxc_dxp_maindomain_env = process.env.COM_LIFERAY_LXC_DXP_MAINDOMAIN;
@@ -414,6 +414,46 @@ describe('lookupConfig', function () {
     finally {
       delete process.env.ENV_A_FLAG;
       delete process.env.ENV_A_RETRIES;
+    }
+  });
+
+  it('should not split a comma containing value from a JSON file into a list', function () {
+    sinon.stub(fs, 'existsSync').withArgs("/cwd/application.json").returns(true);
+    sinon.stub(fs, 'readFileSync').withArgs("/cwd/application.json", 'utf8')
+      .returns('{"greeting": "Hello, world", "db.url": "postgres://u:p@h/db?a=1,b=2"}');
+
+    assert.equal(lookupConfig('greeting'), 'Hello, world');
+    assert.equal(lookupConfig('db.url'), 'postgres://u:p@h/db?a=1,b=2');
+  });
+
+  it('should still split a comma delimited environment variable into a list', function () {
+    process.env.SPLIT_ME = 'a,b';
+
+    try {
+      assert.deepEqual(lookupConfig('split.me'), ['a', 'b']);
+    }
+    finally {
+      delete process.env.SPLIT_ME;
+    }
+  });
+
+  it('should not consult the devtools file in production', function () {
+    const nodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    sinon.stub(fs, 'existsSync').withArgs("/homedir/.config-node-devtools.json").returns(true);
+    sinon.stub(fs, 'readFileSync').withArgs("/homedir/.config-node-devtools.json", 'utf8')
+      .returns('{"production.key": "from devtools"}');
+
+    try {
+      assert.isUndefined(lookupConfig('production.key'));
+    }
+    finally {
+      if (nodeEnv === undefined) {
+        delete process.env.NODE_ENV;
+      }
+      else {
+        process.env.NODE_ENV = nodeEnv;
+      }
     }
   });
 

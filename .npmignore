@@ -1,4 +1,8 @@
+.github
+.nvmrc
+RELEASE_PROCESS.md
 examples
 src
 test
+tsconfig.build.json
 tsconfig.json

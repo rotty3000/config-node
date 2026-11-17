@@ -1,7 +1,9 @@
 import fs from 'node:fs';
 import {lookupConfig} from '../../config-node';
 import {ConfigProvider} from '../types';
-import {computeIfAbsent, protectedKeys, resolveContainedFile, trimFileValue, unquote} from '../util';
+import {
+  commaSeparated, computeIfAbsent, protectedKeys, resolveContainedFile, trimFileValue, unquote
+} from '../util';
 
 export const configTrees: ConfigProvider = {
   key: 'config-trees',
@@ -23,7 +25,7 @@ export const configTrees: ConfigProvider = {
         const configtreeEntry = resolveContainedFile(configtree, key);
 
         if (configtreeEntry) {
-          return unquote(trimFileValue(fs.readFileSync(configtreeEntry, 'utf8')));
+          return commaSeparated(unquote(trimFileValue(fs.readFileSync(configtreeEntry, 'utf8'))));
         }
       }
     });

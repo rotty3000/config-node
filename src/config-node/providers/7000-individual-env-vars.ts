@@ -1,5 +1,5 @@
 import {ConfigProvider} from '../types';
-import {computeIfAbsent, unquote} from '../util';
+import {commaSeparated, computeIfAbsent, unquote} from '../util';
 
 export const individualEnvVars: ConfigProvider = {
   key: 'environment-variables',
@@ -9,6 +9,6 @@ export const individualEnvVars: ConfigProvider = {
     let modifiedKey = key.replace(/\./gi, '_');
     modifiedKey = modifiedKey.replace(/-/gi, '');
     modifiedKey = modifiedKey.toUpperCase();
-    return unquote(process.env[modifiedKey]);
+    return commaSeparated(unquote(process.env[modifiedKey]));
   }),
 };

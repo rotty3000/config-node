@@ -171,15 +171,22 @@ function unquote(it: any) {
     else if (it.startsWith('\'') && it.endsWith('\'')) {
       return it.slice(1, -1);
     }
+  }
+  return it;
+}
 
-    if (it.includes(',')) {
-      return it.split(',');
-    }
+/**
+ * A comma delimited list is how the flat text sources express a list (an environment variable, or a file in a
+ * volume mounted ConfigMap); JSON sources can express an array for real, so they are not split this way.
+ */
+function commaSeparated(it: any) {
+  if (typeof it === 'string' && it.includes(',')) {
+    return it.split(',');
   }
   return it;
 }
 
 export {
-  computeIfAbsent, findProjectRoot, getProjectRoot, isSafePathSegment, protectedKeys, readJSONFile, readKey,
-  redactValue, resolveContainedFile, setVerbose, trimFileValue, unquote, verbose
+  commaSeparated, computeIfAbsent, findProjectRoot, getProjectRoot, isSafePathSegment, protectedKeys,
+  readJSONFile, readKey, redactValue, resolveContainedFile, setVerbose, trimFileValue, unquote, verbose
 };

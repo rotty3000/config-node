@@ -1,19 +1,32 @@
 {
   "compilerOptions": {
     "declaration": true,
-    "module": "commonjs",
     "esModuleInterop": true,
-    "target": "es6",
+    "lib": [
+      "ES2022"
+    ],
+    "module": "commonjs",
     "moduleResolution": "node",
+    "noEmit": true,
+    "noUnusedLocals": true,
+    "skipLibCheck": true,
     "sourceMap": true,
-    "outDir": "dist",
+    "strict": true,
+    "target": "es2022",
+    "baseUrl": ".",
+    "paths": {
+      "@rotty3000/config-node": [
+        "src/index.ts"
+      ]
+    }
   },
-  "lib": ["es2017", "es7", "es6", "dom"],
   "include": [
     "src/",
+    "test/",
+    "examples/"
   ],
   "exclude": [
     "dist",
-    "node_modules",
+    "node_modules"
   ]
 }

@@ -25,7 +25,7 @@ class ConfigProviderHolder {
   }
 }
 
-class KeyProviderPair {
+interface KeyProviderPair {
   readonly key: string;
   readonly provider: ConfigProvider;
 }
@@ -90,7 +90,7 @@ function lookupConfig(key: string): string | string[] | undefined {
   let value: any;
 
   for (var holder of configProviderHolders) {
-    const pair = {key, provider: holder.provider};
+    const pair: KeyProviderPair = {key, provider: holder.provider};
 
     if (stack.find(p => p.key === pair.key && p.provider === pair.provider)) {
       continue;
@@ -113,7 +113,7 @@ function lookupConfig(key: string): string | string[] | undefined {
 
       if (value) {
         verbose && console.debug(
-          '[config-node]', `Provider [${holder.provider.key}] returned${valueFromCache ? ' (from cache)' : ''}: `,
+          '[config-node]', `Provider [${_providerLabel(holder.provider)}] returned${valueFromCache ? ' (from cache)' : ''}: `,
           key, '=', redactValue(key, value));
 
         return value;
@@ -157,6 +157,10 @@ function _normalizeValue(value: any): any {
   }
 
   return _interpolatePlaceholders(_stringify(value));
+}
+
+function _providerLabel(provider: ConfigProvider): string {
+  return provider.description ? `${provider.key}: ${provider.description}` : provider.key;
 }
 
 function _stringify(value: any): any {

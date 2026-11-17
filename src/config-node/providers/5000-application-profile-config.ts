@@ -1,30 +1,22 @@
 import path from 'node:path';
-import {lookupConfig} from '../../config-node';
-import {ConfigProvider} from '../types';
-import {computeIfAbsent, isSafePathSegment, protectedKeys, readJSONFile, readKey, unquote} from '../util';
+import {computeIfAbsent, protectedKeys} from '../util';
+import {activeProfile} from './active-profile';
+import {jsonFileProvider} from './json-file';
 
-export const applicationProfileConfig: ConfigProvider = {
+export const applicationProfileConfig = jsonFileProvider({
   key: '${CWD}/config/application-<profile>.json',
   description: 'From application profile property json files in ${CWD}/config',
   priority: 5000,
-  get: (key, providerCache, commonCache) => {
-    if (protectedKeys.includes(key)) {
-      return;
-    }
-    let profile = lookupConfig('config.node.profiles.active');
+  isEnabled: (key) => !protectedKeys.includes(key),
+  resolvePath: (commonCache) => {
+    const profile = activeProfile();
+
     if (!profile) {
-      return;
+      return undefined;
     }
-    profile = Array.isArray(profile) ? profile[profile.length - 1] : profile;
-    // the profile name is pasted into a file name, so it must not be able to walk out of the directory
-    if (!isSafePathSegment(profile as string)) {
-      return;
-    }
+
     const cwd = computeIfAbsent(commonCache, 'cwd', () => process.cwd());
-    const configPath = path.join(cwd, 'config', `application-${profile}.json`);
-    const json = computeIfAbsent(providerCache, configPath, () => readJSONFile(configPath));
-    if (json) {
-      return unquote(readKey(json, key));
-    }
+
+    return path.join(cwd, 'config', `application-${profile}.json`);
   },
-};
+});
